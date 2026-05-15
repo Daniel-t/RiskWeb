@@ -8,14 +8,46 @@ RiskWeb is a web-based quantitative cyber risk analysis and attack path modeling
 
 ## Tech Stack
 
-- **Frontend**: React, React Flow (attack tree canvas), D3 (visualizations), TypeScript
-- **Backend**: NestJS (TypeScript)
-- **Storage**: Local file-based (JSON), architected for future database persistence
+- **Frontend**: React 19, React Flow (@xyflow/react), D3, Zustand, TypeScript 6, Vite 8
+- **Backend**: NestJS 11, TypeScript 6
+- **Storage**: Local file-based JSON (`backend/data/scenarios/`), architected for future database persistence
 - **Simulation**: Client-side Monte Carlo engine in Web Workers
+
+## Architecture
+
+Monorepo with three top-level packages: `frontend/`, `backend/`, and `shared/` (planned, not yet created). Both frontend and backend have `@shared/*` path aliases configured pointing to `../shared/`.
+
+- **Frontend** (localhost:5173): Vite dev server, React 19, state managed with Zustand
+- **Backend** (localhost:3000): NestJS with global `/api` prefix, CORS enabled for localhost:5173
+- **Shared types spec**: `context/shared/spec-shared-types.md` — core interfaces (Scenario, AttackTreeNode, Edge, FAIRInputs, Distribution, SimulationConfig, SimulationResult)
+- **Data flow**: Build attack tree → enter FAIR inputs on leaves → run Monte Carlo simulation → view results → save/load as JSON
 
 ## Build & Development Commands
 
-No build system, package.json, or test framework has been configured yet. This section should be updated once the project is scaffolded.
+Node v22 required (see `.nvmrc`). No test framework configured yet.
+
+### Frontend (`cd frontend`)
+```
+npm run dev              # Vite dev server (localhost:5173)
+npm run build            # tsc -b && vite build
+npm run lint             # eslint .
+npm run format           # prettier --write
+npm run format:check     # prettier --check
+```
+
+### Backend (`cd backend`)
+```
+npm run start:dev        # nest start --watch (localhost:3000)
+npm run build            # nest build
+npm run start            # nest start (production)
+npm run start:debug      # nest start --debug --watch
+```
+
+## Code Style
+
+- Prettier: semicolons, single quotes, trailing commas, 100 char line width, 2-space indent
+- ESLint: flat config (v10) with typescript-eslint and prettier integration
+- TypeScript: strict mode, target ES2022
 
 ## AI Workforce Personas
 

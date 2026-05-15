@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm audit:*)",
+      "Bash(grep -E \"\\\\.\\(json|ts\\)$|^d\")",
+      "Bash(npx tsc:*)"
+    ]
+  }
+}
