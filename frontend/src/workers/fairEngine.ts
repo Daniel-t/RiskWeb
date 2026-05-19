@@ -1,4 +1,4 @@
-import type { AttackTreeNode, Edge, Distribution, SimulationConfig } from '@shared/index';
+import type { AttackTreeNode, Edge, Distribution, SimulationConfig, Control, ControlAssignment } from '@shared/index';
 import { sampleDistribution } from './distributions';
 
 export interface NodeResult {
@@ -81,6 +81,8 @@ export function evaluateTree(
   edges: Edge[],
   sortedOrder: string[],
   rng: () => number,
+  nodeAssignments?: Map<string, ControlAssignment[]>,
+  controlMap?: Map<string, Control>,
 ): Map<string, NodeResult> {
   const nodeMap = new Map(nodes.map((n) => [n.id, n]));
   const results = new Map<string, NodeResult>();
@@ -100,7 +102,24 @@ export function evaluateTree(
         results.set(nodeId, { lef: 0 });
         continue;
       }
-      const lef = sampleDistribution(node.fairInputs.lef, rng);
+      let lef = sampleDistribution(node.fairInputs.lef, rng);
+
+      // Apply control LEF reductions (multiplicative stacking)
+      const assignments = nodeAssignments?.get(nodeId);
+      if (assignments && controlMap) {
+        let combinedPassThrough = 1;
+        for (const assignment of assignments) {
+          if (!assignment.enabled) continue;
+          const control = controlMap.get(assignment.controlId);
+          if (!control) continue; // orphaned assignment
+          const reductionDist = assignment.lefReductionOverride ?? control.lefReduction;
+          const reduction = sampleDistribution(reductionDist, rng);
+          combinedPassThrough *= 1 - Math.max(0, Math.min(1, reduction));
+        }
+        combinedPassThrough = Math.max(0, Math.min(1, combinedPassThrough));
+        lef *= combinedPassThrough;
+      }
+
       results.set(nodeId, { lef });
     } else {
       // Gate node — aggregate LEF only

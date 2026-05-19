@@ -4,6 +4,7 @@ import type { Distribution } from '@shared/index';
 import type { TreeNodeData } from '../../store/treeStore';
 import { useTreeStore } from '../../store/treeStore';
 import { DistributionInput } from './DistributionInput';
+import { NodeControlsSection } from './NodeControlsSection';
 
 interface LeafPropertyPanelProps {
   node: Node<TreeNodeData>;
@@ -49,6 +50,10 @@ export function LeafPropertyPanel({ node }: LeafPropertyPanelProps) {
         }}
       >
         {isValid ? '\u2713 Inputs complete' : '\u26A0 Missing inputs'}
+      </div>
+
+      <div style={{ borderTop: '1px solid var(--border-panel)', paddingTop: 16 }}>
+        <NodeControlsSection nodeId={node.id} />
       </div>
     </div>
   );

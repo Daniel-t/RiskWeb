@@ -1,20 +1,12 @@
-import type { Scenario, SimulationResult } from '@shared/index';
+import type { Scenario, SimulationResult, Control, ControlAssignment } from '@shared/index';
 import { topologicalSort, evaluateTree, validateScenario } from './fairEngine';
 import { sampleDistribution } from './distributions';
-
-function mulberry32(seed: number): () => number {
-  return () => {
-    seed |= 0;
-    seed = (seed + 0x6d2b79f5) | 0;
-    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
+import { mulberry32 } from './prng';
 
 interface SimulationRequest {
   type: 'start';
   scenario: Scenario;
+  controls?: Control[];
 }
 
 interface SimulationCancel {
@@ -33,12 +25,12 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
 
   if (e.data.type === 'start') {
     cancelled = false;
-    runSimulation(e.data.scenario);
+    runSimulation(e.data.scenario, e.data.controls ?? []);
   }
 };
 
-function runSimulation(scenario: Scenario) {
-  const { nodes, edges, lossMagnitude, simulationConfig } = scenario;
+function runSimulation(scenario: Scenario, controls: Control[]) {
+  const { nodes, edges, lossMagnitude, simulationConfig, controlAssignments } = scenario;
   const { iterations, seed, confidenceIntervals } = simulationConfig;
 
   // Validate
@@ -60,6 +52,34 @@ function runSimulation(scenario: Scenario) {
     return;
   }
 
+  // Build control lookup maps
+  const controlMap = new Map<string, Control>();
+  for (const c of controls) controlMap.set(c.id, c);
+
+  const nodeAssignments = new Map<string, ControlAssignment[]>();
+  const lmAssignments: ControlAssignment[] = [];
+  const controlWarnings: string[] = [];
+
+  if (controlAssignments && controlAssignments.length > 0) {
+    for (const a of controlAssignments) {
+      if (!controlMap.has(a.controlId)) {
+        const msg = `Control '${a.controlId}' not found (orphaned assignment)`;
+        if (!controlWarnings.includes(msg)) controlWarnings.push(msg);
+        continue;
+      }
+      // LEF assignments grouped by node
+      const existing = nodeAssignments.get(a.nodeId) ?? [];
+      existing.push(a);
+      nodeAssignments.set(a.nodeId, existing);
+
+      // LM assignments collected separately
+      const ctrl = controlMap.get(a.controlId)!;
+      if (ctrl.lmReduction) {
+        lmAssignments.push(a);
+      }
+    }
+  }
+
   // Find root (last in sorted order)
   const rootId = sortedOrder[sortedOrder.length - 1];
 
@@ -72,6 +92,7 @@ function runSimulation(scenario: Scenario) {
 
   const rootALEs: number[] = [];
   const startTime = performance.now();
+  let excessiveReductionWarned = false;
 
   for (let k = 0; k < iterations; k++) {
     // Check cancellation
@@ -79,11 +100,25 @@ function runSimulation(scenario: Scenario) {
       return;
     }
 
-    // Evaluate tree (frequency aggregation only)
-    const iterResult = evaluateTree(nodes, edges, sortedOrder, rng);
+    // Evaluate tree (frequency aggregation with control reductions)
+    const iterResult = evaluateTree(nodes, edges, sortedOrder, rng, nodeAssignments, controlMap);
 
     // Sample scenario-level LM
-    const lm = sampleDistribution(lossMagnitude!, rng);
+    let lm = sampleDistribution(lossMagnitude!, rng);
+
+    // Apply LM reductions from controls
+    if (lmAssignments.length > 0) {
+      let lmPassThrough = 1;
+      for (const a of lmAssignments) {
+        if (!a.enabled) continue;
+        const ctrl = controlMap.get(a.controlId)!;
+        const dist = a.lmReductionOverride ?? ctrl.lmReduction!;
+        const reduction = sampleDistribution(dist, rng);
+        lmPassThrough *= 1 - Math.max(0, Math.min(1, reduction));
+      }
+      lmPassThrough = Math.max(0, Math.min(1, lmPassThrough));
+      lm *= lmPassThrough;
+    }
 
     // Compute ALE at root
     const rootLEF = iterResult.get(rootId)!.lef;
@@ -93,6 +128,32 @@ function runSimulation(scenario: Scenario) {
     // Store per-node LEF
     for (const id of nodeIds) {
       perNodeLEFs.get(id)!.push(iterResult.get(id)!.lef);
+    }
+
+    // Check for excessive reduction (only on first iteration to avoid spam)
+    if (k === 0 && !excessiveReductionWarned) {
+      for (const [nId, assignments] of nodeAssignments) {
+        const enabledCount = assignments.filter((a) => a.enabled && controlMap.has(a.controlId)).length;
+        if (enabledCount >= 3) {
+          // Compute mode-based combined reduction to check
+          let modePassThrough = 1;
+          for (const a of assignments) {
+            if (!a.enabled) continue;
+            const ctrl = controlMap.get(a.controlId);
+            if (!ctrl) continue;
+            const dist = a.lefReductionOverride ?? ctrl.lefReduction;
+            let mode = 0;
+            if (dist.type === 'pert') mode = dist.params.mode;
+            else if (dist.type === 'constant') mode = dist.params.value;
+            modePassThrough *= 1 - mode;
+          }
+          if (1 - modePassThrough > 0.99) {
+            const nodeName = nodes.find((n) => n.id === nId)?.label ?? nId;
+            controlWarnings.push(`Node '${nodeName}': combined reduction exceeds 99% — residual risk may be unrealistically low`);
+            excessiveReductionWarned = true;
+          }
+        }
+      }
     }
 
     // Progress
@@ -124,6 +185,7 @@ function runSimulation(scenario: Scenario) {
     perNode,
     iterations,
     duration,
+    controlWarnings: controlWarnings.length > 0 ? controlWarnings : undefined,
   };
 
   self.postMessage({ type: 'complete', result, rawALEValues: rootALEs });

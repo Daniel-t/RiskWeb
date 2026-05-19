@@ -13,6 +13,7 @@ This is the AI Workforce strategy for the RiskWeb project. It defines the person
 | @ux | UX Designer | `/context/ux/` |
 | @threat | Security/Threat Modeler | `/context/threat/` |
 | @secarch | Security Architect | `/context/secarch/` |
+| @test | QA/Test Engineer | `/context/test/` |
 
 ### @orchestrator
 Project manager. Breaks down work into tasks, assigns them to personas, tracks progress via TASK_INDEX, and resolves blockers. Does not make technical or design decisions.
@@ -35,6 +36,9 @@ Maintains the MITRE ATT&CK technique catalog, D3FEND control mappings, and attac
 ### @secarch
 Reviews all implementation code for OWASP vulnerabilities, secure coding practices, and auth/authz design. Acts as a gate reviewer for all developer output.
 
+### @test
+QA/Test engineer. Designs test strategies, writes and maintains automated tests (Vitest, React Testing Library, Playwright), validates features against acceptance criteria, and reports defects. Writes test code only — does not implement production features.
+
 ## Separation of Responsibilities
 
 ### Spec vs. Implementation
@@ -50,6 +54,7 @@ Cross-persona review is required before a task can be marked as done. Reviews ar
 | @ux | @frontend | Tasks that modify UI components or interaction patterns |
 | @analyst | @frontend, @backend | Tasks that implement an @analyst-authored requirement |
 | @threat | @frontend, @backend | Tasks that touch attack trees, controls, or ATT&CK/D3FEND data |
+| @test | @frontend | Tasks with testable acceptance criteria (writes/runs tests to validate) |
 
 @orchestrator assigns required reviewers when creating each task.
 

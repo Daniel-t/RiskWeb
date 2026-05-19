@@ -49,7 +49,7 @@ export function Sidebar({ side, width, collapsed, onToggle, children }: SidebarP
       >
         {chevron}
       </button>
-      {!collapsed && <div style={{ padding: 16, overflow: 'auto', flex: 1 }}>{children}</div>}
+      {!collapsed && <div style={{ padding: 16, paddingLeft: side === 'right' ? 28 : 16, overflow: 'auto', flex: 1 }}>{children}</div>}
     </div>
   );
 }

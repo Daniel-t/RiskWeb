@@ -1,46 +1,44 @@
 # Project Status
 
 ## Current Phase
-Phase 1: MVP Implementation (Waves B-F complete, pending end-to-end validation)
+Architecture migration complete — backend removed, app is now fully client-side.
+Phase 2 Wave C (frontend control implementation) is next.
 
-## Active Wave
-Wave B-F tasks are done. TASK-114 (MVP end-to-end validation) is next.
+## Architecture Change (2026-05-17)
+**Backend removed.** All persistence moved to browser IndexedDB with JSON export/import. The NestJS backend was eliminated to simplify deployment and reduce complexity. The app is now a static SPA deployable anywhere.
 
-## Key Decision (2026-05-16)
-FAIR model revised: frequency-only tree with scenario-level LM. Leaves contribute LEF only. LM is a scenario-level parameter edited in Scenario Info panel. All specs approved.
+Key changes:
+- `backend/` directory deleted
+- `frontend/src/services/storage.ts` — StoragePort interface + IndexedDB adapter
+- `frontend/src/services/api.ts` — now wraps IndexedDB (same interface, no HTTP)
+- `frontend/src/services/catalog.ts` — ATT&CK/D3FEND data bundled from `shared/data/`
+- `frontend/src/services/fileIO.ts` — JSON export/import for scenarios
+- `frontend/src/services/validate.ts` — runtime validation for imported data
 
-## Active Tasks
+## Phase 1 Summary (COMPLETE 2026-05-16)
+All MVP capabilities delivered and validated. Security review passed (all HIGH+MEDIUM findings resolved). Cosmetic issues ISSUE-3, ISSUE-4 deferred.
 
-| Task | Assigned | Status | Description |
-|------|----------|--------|-------------|
-| TASK-114 | @analyst | blocked | MVP end-to-end validation (depends on TASK-111, 112, 113) |
+## Wave A Summary (COMPLETE)
+All specs, data, and wireframes delivered and approved.
 
-## Completed Tasks
-| Task | Assigned | Description |
-|------|----------|-------------|
-| TASK-001 | @orchestrator | Create context directory structure |
-| TASK-002 | @frontend | Scaffold frontend (React + Vite + TS) |
-| TASK-003 | @backend | Scaffold backend (NestJS + TS) |
-| TASK-004 | @orchestrator | Root configuration (.gitignore update) |
-| TASK-005 | @analyst | Shared data model specification |
-| TASK-006 | @backend | Implement shared types package |
-| TASK-101 | @analyst | FAIR simplified model calculation spec (revised 2026-05-16) |
-| TASK-102 | @analyst | Monte Carlo simulation engine spec |
-| TASK-103 | @ux | MVP UI layout & component wireframes |
-| TASK-104 | @ux | Attack tree canvas interaction spec |
-| TASK-105 | @backend | File storage service |
-| TASK-106 | @backend | Scenario CRUD API |
-| TASK-107 | @frontend | Monte Carlo simulation web worker |
-| TASK-108 | @frontend | App shell & layout |
-| TASK-109 | @frontend | Attack tree canvas |
-| TASK-110 | @frontend | FAIR input property panel |
-| TASK-111 | @frontend | Simulation trigger & results summary |
-| TASK-112 | @frontend | Save/load integration |
-| TASK-113 | @frontend | Results histogram visualization |
+## Wave B Summary (SUPERSEDED)
+Backend tasks TASK-206 through TASK-210 were completed but are now superseded by the architecture migration. The shared types (TASK-206) remain in `shared/src/index.ts`. The backend CRUD, catalog module, and validation DTOs have been replaced by client-side equivalents.
+
+- TASK-211 (@secarch): **cancelled** — Backend no longer exists; frontend security review needed instead
+
+## Workforce Update
+- **@test persona added** — QA/Test engineer responsible for test strategy, automated testing (Vitest, React Testing Library, Playwright), and feature validation. Context at `/context/test/context.md`.
 
 ## Blockers
-- TASK-114 depends on all implementation tasks being complete. Ready to unblock.
+None
 
 ## Next Steps
-1. Unblock TASK-114 and run MVP end-to-end validation
-2. Security review by @secarch
+1. Wave C frontend implementation (TASK-212 through TASK-219) — re-scope to use client-side storage/catalog instead of backend APIs
+2. Security review of client-side storage and import validation
+3. Optionally fix Phase 1 cosmetic issues (ISSUE-3, ISSUE-4)
+
+## Features Requiring Future Backend (Deferred)
+- Multi-user collaboration / shared scenarios
+- Server-side PDF generation (alternative: client-side jsPDF)
+- Centralized audit logging
+- Real-time cross-device sync

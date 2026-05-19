@@ -1,5 +1,6 @@
 logs/combined.log
 logs/error.log
+.playwright-mcp/
 
 # Dependencies
 node_modules/

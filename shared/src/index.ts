@@ -60,6 +60,7 @@ export interface SimulationResult {
   }>;
   iterations: number;
   duration: number;
+  controlWarnings?: string[];
 }
 
 // Scenario types
@@ -71,6 +72,7 @@ export interface Scenario {
   nodes: AttackTreeNode[];
   edges: Edge[];
   lossMagnitude?: Distribution;
+  controlAssignments?: ControlAssignment[];
   simulationConfig: SimulationConfig;
   results?: SimulationResult;
   metadata: {
@@ -83,4 +85,66 @@ export interface ScenarioMeta {
   id: string;
   name: string;
   modified: string;
+}
+
+// Control types
+
+export type ControlCategory = 'preventive' | 'detective' | 'corrective';
+
+export interface ControlMetadata {
+  created: string;
+  modified: string;
+  source?: 'custom' | 'd3fend-mapped' | 'template';
+}
+
+export interface Control {
+  id: string;
+  name: string;
+  description?: string;
+  category: ControlCategory;
+  attackTechniques: string[];
+  d3fendTechniques: string[];
+  lefReduction: Distribution;
+  lmReduction?: Distribution;
+  metadata: ControlMetadata;
+}
+
+export interface ControlMeta {
+  id: string;
+  name: string;
+  category: ControlCategory;
+  attackTechniques: string[];
+  modified: string;
+}
+
+export interface ControlAssignment {
+  id: string;
+  controlId: string;
+  nodeId: string;
+  lefReductionOverride?: Distribution;
+  lmReductionOverride?: Distribution;
+  enabled: boolean;
+}
+
+// Catalog types
+
+export interface AttackTechnique {
+  id: string;
+  name: string;
+  tactic: string;
+  description?: string;
+  d3fendCountermeasures: string[];
+}
+
+export interface D3fendTechnique {
+  id: string;
+  name: string;
+  category: string;
+  counters: string[];
+}
+
+export interface TechniqueMapping {
+  attackId: string;
+  d3fendId: string;
+  suggestedLefReduction?: Distribution;
 }

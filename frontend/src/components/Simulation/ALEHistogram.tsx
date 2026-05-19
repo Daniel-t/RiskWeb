@@ -2,6 +2,16 @@ import { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 import type { SimulationResult } from '@shared/index';
 
+function formatCurrencyAxis(value: number): string {
+  const abs = Math.abs(value);
+  if (abs === 0) return '$0';
+  if (abs >= 1e9) return `$${(value / 1e9).toFixed(1)}B`;
+  if (abs >= 1e6) return `$${(value / 1e6).toFixed(1)}M`;
+  if (abs >= 1e3) return `$${(value / 1e3).toFixed(1)}K`;
+  if (abs >= 1) return `$${value.toFixed(0)}`;
+  return `$${value.toFixed(2)}`;
+}
+
 interface ALEHistogramProps {
   rawALEValues: number[];
   results: SimulationResult;
@@ -59,7 +69,7 @@ export function ALEHistogram({ rawALEValues, results }: ALEHistogramProps) {
         d3
           .axisBottom(x)
           .ticks(6)
-          .tickFormat((d) => `$${d3.format('.2s')(d as number)}`),
+          .tickFormat((d) => formatCurrencyAxis(d as number)),
       )
       .selectAll('text')
       .style('font-size', '11px');

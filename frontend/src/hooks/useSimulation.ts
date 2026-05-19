@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
-import type { Scenario, SimulationResult } from '@shared/index';
+import type { Scenario, SimulationResult, Control } from '@shared/index';
 import { useSimulationStore } from '../store/simulationStore';
 
 interface WorkerProgressMessage {
@@ -28,7 +28,7 @@ export function useSimulation() {
   const { setRunning, setProgress, setResults, setErrors } = useSimulationStore();
 
   const run = useCallback(
-    (scenario: Scenario) => {
+    (scenario: Scenario, controls: Control[] = []) => {
       // Terminate existing worker
       if (workerRef.current) {
         workerRef.current.terminate();
@@ -69,7 +69,7 @@ export function useSimulation() {
         workerRef.current = null;
       };
 
-      worker.postMessage({ type: 'start', scenario });
+      worker.postMessage({ type: 'start', scenario, controls });
     },
     [setRunning, setProgress, setResults, setErrors],
   );

@@ -1,0 +1,266 @@
+{
+  "version": "1.0",
+  "source": "MITRE D3FEND v1.0",
+  "defenses": [
+    {
+      "id": "D3-MFA",
+      "name": "Multi-factor Authentication",
+      "category": "preventive",
+      "counters": ["T1566", "T1078", "T1133"],
+      "defaultEffectiveness": {
+        "type": "pert",
+        "min": 0.6,
+        "mode": 0.85,
+        "max": 0.95
+      },
+      "channel": "lef"
+    },
+    {
+      "id": "D3-SPP",
+      "name": "Strong Password Policy",
+      "category": "preventive",
+      "counters": ["T1078"],
+      "defaultEffectiveness": {
+        "type": "pert",
+        "min": 0.3,
+        "mode": 0.5,
+        "max": 0.7
+      },
+      "channel": "lef"
+    },
+    {
+      "id": "D3-NTA",
+      "name": "Network Traffic Analysis",
+      "category": "detective",
+      "counters": ["T1190", "T1189", "T1498"],
+      "defaultEffectiveness": {
+        "type": "pert",
+        "min": 0.4,
+        "mode": 0.6,
+        "max": 0.8
+      },
+      "channel": "lef"
+    },
+    {
+      "id": "D3-EAL",
+      "name": "Execution Allow Listing",
+      "category": "preventive",
+      "counters": ["T1059", "T1204"],
+      "defaultEffectiveness": {
+        "type": "pert",
+        "min": 0.7,
+        "mode": 0.85,
+        "max": 0.95
+      },
+      "channel": "lef"
+    },
+    {
+      "id": "D3-FV",
+      "name": "File Content Analysis",
+      "category": "detective",
+      "counters": ["T1566", "T1204"],
+      "defaultEffectiveness": {
+        "type": "pert",
+        "min": 0.4,
+        "mode": 0.65,
+        "max": 0.8
+      },
+      "channel": "lef"
+    },
+    {
+      "id": "D3-NI",
+      "name": "Network Isolation",
+      "category": "preventive",
+      "counters": ["T1190", "T1199", "T1133"],
+      "defaultEffectiveness": {
+        "type": "pert",
+        "min": 0.5,
+        "mode": 0.75,
+        "max": 0.9
+      },
+      "channel": "lef"
+    },
+    {
+      "id": "D3-UA",
+      "name": "User Account Permissions",
+      "category": "preventive",
+      "counters": ["T1078", "T1053"],
+      "defaultEffectiveness": {
+        "type": "pert",
+        "min": 0.4,
+        "mode": 0.6,
+        "max": 0.8
+      },
+      "channel": "lef"
+    },
+    {
+      "id": "D3-EI",
+      "name": "Email Filtering",
+      "category": "preventive",
+      "counters": ["T1566"],
+      "defaultEffectiveness": {
+        "type": "pert",
+        "min": 0.5,
+        "mode": 0.75,
+        "max": 0.9
+      },
+      "channel": "lef"
+    },
+    {
+      "id": "D3-DNSAL",
+      "name": "DNS Allowlisting",
+      "category": "preventive",
+      "counters": ["T1189"],
+      "defaultEffectiveness": {
+        "type": "pert",
+        "min": 0.3,
+        "mode": 0.55,
+        "max": 0.75
+      },
+      "channel": "lef"
+    },
+    {
+      "id": "D3-BA",
+      "name": "Data Backup",
+      "category": "corrective",
+      "counters": ["T1486", "T1485", "T1490"],
+      "defaultEffectiveness": {
+        "type": "pert",
+        "min": 0.5,
+        "mode": 0.8,
+        "max": 0.95
+      },
+      "channel": "lm"
+    },
+    {
+      "id": "D3-ITF",
+      "name": "Inbound Traffic Filtering",
+      "category": "preventive",
+      "counters": ["T1190", "T1133", "T1498"],
+      "defaultEffectiveness": {
+        "type": "pert",
+        "min": 0.5,
+        "mode": 0.7,
+        "max": 0.85
+      },
+      "channel": "lef"
+    },
+    {
+      "id": "D3-PSA",
+      "name": "Process Spawn Analysis",
+      "category": "detective",
+      "counters": ["T1059", "T1569"],
+      "defaultEffectiveness": {
+        "type": "pert",
+        "min": 0.4,
+        "mode": 0.6,
+        "max": 0.8
+      },
+      "channel": "lef"
+    },
+    {
+      "id": "D3-IOPR",
+      "name": "IO Port Restriction",
+      "category": "preventive",
+      "counters": ["T1200"],
+      "defaultEffectiveness": {
+        "type": "pert",
+        "min": 0.6,
+        "mode": 0.8,
+        "max": 0.95
+      },
+      "channel": "lef"
+    },
+    {
+      "id": "D3-SCA",
+      "name": "System Call Analysis",
+      "category": "detective",
+      "counters": ["T1106", "T1059"],
+      "defaultEffectiveness": {
+        "type": "pert",
+        "min": 0.35,
+        "mode": 0.55,
+        "max": 0.75
+      },
+      "channel": "lef"
+    },
+    {
+      "id": "D3-EDL",
+      "name": "Endpoint Detection and Response",
+      "category": "detective",
+      "counters": ["T1204", "T1203", "T1559", "T1047"],
+      "defaultEffectiveness": {
+        "type": "pert",
+        "min": 0.5,
+        "mode": 0.7,
+        "max": 0.9
+      },
+      "channel": "lef"
+    },
+    {
+      "id": "D3-SWAL",
+      "name": "Software Update",
+      "category": "preventive",
+      "counters": ["T1190", "T1195", "T1203"],
+      "defaultEffectiveness": {
+        "type": "pert",
+        "min": 0.4,
+        "mode": 0.65,
+        "max": 0.85
+      },
+      "channel": "lef"
+    },
+    {
+      "id": "D3-RRI",
+      "name": "Redundant Resource Provisioning",
+      "category": "corrective",
+      "counters": ["T1489", "T1529", "T1498"],
+      "defaultEffectiveness": {
+        "type": "pert",
+        "min": 0.5,
+        "mode": 0.7,
+        "max": 0.9
+      },
+      "channel": "lm"
+    },
+    {
+      "id": "D3-DENCR",
+      "name": "Disk Encryption",
+      "category": "preventive",
+      "counters": ["T1561", "T1485"],
+      "defaultEffectiveness": {
+        "type": "pert",
+        "min": 0.4,
+        "mode": 0.6,
+        "max": 0.8
+      },
+      "channel": "lm"
+    },
+    {
+      "id": "D3-ACL",
+      "name": "Access Control List",
+      "category": "preventive",
+      "counters": ["T1133", "T1078", "T1199"],
+      "defaultEffectiveness": {
+        "type": "pert",
+        "min": 0.4,
+        "mode": 0.6,
+        "max": 0.8
+      },
+      "channel": "lef"
+    },
+    {
+      "id": "D3-IRP",
+      "name": "Incident Response Process",
+      "category": "corrective",
+      "counters": ["T1486", "T1491", "T1485"],
+      "defaultEffectiveness": {
+        "type": "pert",
+        "min": 0.3,
+        "mode": 0.55,
+        "max": 0.8
+      },
+      "channel": "lm"
+    }
+  ]
+}

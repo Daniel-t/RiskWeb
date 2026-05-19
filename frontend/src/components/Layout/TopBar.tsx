@@ -6,6 +6,8 @@ interface TopBarProps {
   onNew: () => void;
   onSave: () => void;
   onLoad: () => void;
+  onExport: () => void;
+  onImport: () => void;
   onAutoLayout: () => void;
   onRun: () => void;
   onCancel: () => void;
@@ -16,6 +18,8 @@ export function TopBar({
   onNew,
   onSave,
   onLoad,
+  onExport,
+  onImport,
   onAutoLayout,
   onRun,
   onCancel,
@@ -66,6 +70,12 @@ export function TopBar({
           </button>
           <button className="btn btn-secondary" onClick={onLoad}>
             Load
+          </button>
+          <button className="btn btn-secondary" onClick={onExport} title="Export scenario to JSON file">
+            Export
+          </button>
+          <button className="btn btn-secondary" onClick={onImport} title="Import scenario from JSON file">
+            Import
           </button>
           <button className="btn btn-secondary" onClick={onAutoLayout}>
             Auto Layout

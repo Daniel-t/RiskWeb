@@ -13,6 +13,7 @@ import {
 import '@xyflow/react/dist/style.css';
 
 import { useTreeStore } from '../../store/treeStore';
+import { useControlStore } from '../../store/controlStore';
 import { LeafNode } from './nodes/LeafNode';
 import { GateNode } from './nodes/GateNode';
 import { ContextMenu, type ContextMenuState } from './ContextMenu';
@@ -64,19 +65,46 @@ export function AttackTreeCanvas() {
   const onDrop = useCallback(
     (e: DragEvent) => {
       e.preventDefault();
+
+      // Handle node type drops
       const type = e.dataTransfer.getData('application/riskweb-node-type') as
         | 'leaf'
         | 'and'
         | 'or';
-      if (!type || !rfInstance) return;
+      if (type && rfInstance) {
+        const position = rfInstance.screenToFlowPosition({
+          x: e.clientX,
+          y: e.clientY,
+        });
+        addNode(type, position);
+        return;
+      }
 
-      const position = rfInstance.screenToFlowPosition({
-        x: e.clientX,
-        y: e.clientY,
-      });
-      addNode(type, position);
+      // Handle control drops onto leaf nodes
+      const controlId = e.dataTransfer.getData('application/riskweb-control-id');
+      if (controlId && rfInstance) {
+        const position = rfInstance.screenToFlowPosition({
+          x: e.clientX,
+          y: e.clientY,
+        });
+        // Find the leaf node at the drop position
+        const targetNode = nodes.find((n) => {
+          if (n.type !== 'leaf') return false;
+          const nx = n.position.x;
+          const ny = n.position.y;
+          return (
+            position.x >= nx &&
+            position.x <= nx + 160 &&
+            position.y >= ny &&
+            position.y <= ny + 60
+          );
+        });
+        if (targetNode) {
+          useControlStore.getState().addAssignment(controlId, targetNode.id);
+        }
+      }
     },
-    [rfInstance, addNode],
+    [rfInstance, addNode, nodes],
   );
 
   const onNodeClick: NodeMouseHandler = useCallback(

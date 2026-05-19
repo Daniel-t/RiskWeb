@@ -1,0 +1,174 @@
+{
+  "version": "1.0",
+  "source": "MITRE ATT&CK v15",
+  "techniques": [
+    {
+      "id": "T1566",
+      "name": "Phishing",
+      "tactic": "initial-access",
+      "description": "Adversaries send phishing messages to gain access to victim systems, typically via malicious attachments or links.",
+      "subtechniques": ["T1566.001", "T1566.002", "T1566.003"]
+    },
+    {
+      "id": "T1190",
+      "name": "Exploit Public-Facing Application",
+      "tactic": "initial-access",
+      "description": "Adversaries exploit vulnerabilities in internet-facing software to gain initial access to a network.",
+      "subtechniques": []
+    },
+    {
+      "id": "T1133",
+      "name": "External Remote Services",
+      "tactic": "initial-access",
+      "description": "Adversaries leverage external-facing remote services (VPN, RDP, Citrix) to initially access a network.",
+      "subtechniques": []
+    },
+    {
+      "id": "T1078",
+      "name": "Valid Accounts",
+      "tactic": "initial-access",
+      "description": "Adversaries obtain and abuse credentials of existing accounts to gain initial access, persistence, or privilege escalation.",
+      "subtechniques": ["T1078.001", "T1078.002", "T1078.003", "T1078.004"]
+    },
+    {
+      "id": "T1199",
+      "name": "Trusted Relationship",
+      "tactic": "initial-access",
+      "description": "Adversaries breach organizations via trusted third-party relationships that have privileged access to the target network.",
+      "subtechniques": []
+    },
+    {
+      "id": "T1195",
+      "name": "Supply Chain Compromise",
+      "tactic": "initial-access",
+      "description": "Adversaries manipulate products or delivery mechanisms prior to receipt by a final consumer to compromise data or systems.",
+      "subtechniques": ["T1195.001", "T1195.002"]
+    },
+    {
+      "id": "T1189",
+      "name": "Drive-by Compromise",
+      "tactic": "initial-access",
+      "description": "Adversaries gain access through a user visiting a compromised website during normal browsing.",
+      "subtechniques": []
+    },
+    {
+      "id": "T1200",
+      "name": "Hardware Additions",
+      "tactic": "initial-access",
+      "description": "Adversaries introduce rogue hardware (USB devices, network implants) to gain access to systems.",
+      "subtechniques": []
+    },
+    {
+      "id": "T1059",
+      "name": "Command and Scripting Interpreter",
+      "tactic": "execution",
+      "description": "Adversaries abuse command and script interpreters to execute commands, scripts, or binaries.",
+      "subtechniques": ["T1059.001", "T1059.003", "T1059.005", "T1059.007"]
+    },
+    {
+      "id": "T1203",
+      "name": "Exploitation for Client Execution",
+      "tactic": "execution",
+      "description": "Adversaries exploit software vulnerabilities in client applications to execute code on target systems.",
+      "subtechniques": []
+    },
+    {
+      "id": "T1204",
+      "name": "User Execution",
+      "tactic": "execution",
+      "description": "Adversaries rely on a user executing a malicious file or link to gain execution on the system.",
+      "subtechniques": ["T1204.001", "T1204.002"]
+    },
+    {
+      "id": "T1047",
+      "name": "Windows Management Instrumentation",
+      "tactic": "execution",
+      "description": "Adversaries abuse Windows Management Instrumentation (WMI) to execute malicious commands and payloads.",
+      "subtechniques": []
+    },
+    {
+      "id": "T1053",
+      "name": "Scheduled Task/Job",
+      "tactic": "execution",
+      "description": "Adversaries abuse task scheduling functionality to facilitate initial or recurring execution of malicious code.",
+      "subtechniques": ["T1053.005"]
+    },
+    {
+      "id": "T1569",
+      "name": "System Services",
+      "tactic": "execution",
+      "description": "Adversaries abuse system services or daemons to execute commands or programs.",
+      "subtechniques": ["T1569.002"]
+    },
+    {
+      "id": "T1106",
+      "name": "Native API",
+      "tactic": "execution",
+      "description": "Adversaries interact directly with the native OS API to execute behaviors, bypassing higher-level monitoring.",
+      "subtechniques": []
+    },
+    {
+      "id": "T1559",
+      "name": "Inter-Process Communication",
+      "tactic": "execution",
+      "description": "Adversaries abuse inter-process communication mechanisms (COM, DDE) to execute commands on local or remote systems.",
+      "subtechniques": ["T1559.001", "T1559.002"]
+    },
+    {
+      "id": "T1486",
+      "name": "Data Encrypted for Impact",
+      "tactic": "impact",
+      "description": "Adversaries encrypt data on target systems to interrupt availability, typically for ransom.",
+      "subtechniques": []
+    },
+    {
+      "id": "T1485",
+      "name": "Data Destruction",
+      "tactic": "impact",
+      "description": "Adversaries destroy data and files on specific systems or across a network to interrupt availability.",
+      "subtechniques": []
+    },
+    {
+      "id": "T1490",
+      "name": "Inhibit System Recovery",
+      "tactic": "impact",
+      "description": "Adversaries delete or remove built-in OS data and disable services designed to aid in system recovery.",
+      "subtechniques": []
+    },
+    {
+      "id": "T1489",
+      "name": "Service Stop",
+      "tactic": "impact",
+      "description": "Adversaries stop or disable services on a system to render those services unavailable to legitimate users.",
+      "subtechniques": []
+    },
+    {
+      "id": "T1491",
+      "name": "Defacement",
+      "tactic": "impact",
+      "description": "Adversaries modify visual content to deliver messaging, intimidate, or claim credit for an intrusion.",
+      "subtechniques": ["T1491.001", "T1491.002"]
+    },
+    {
+      "id": "T1561",
+      "name": "Disk Wipe",
+      "tactic": "impact",
+      "description": "Adversaries wipe or corrupt raw disk data on specific systems or across a network to interrupt availability.",
+      "subtechniques": ["T1561.001", "T1561.002"]
+    },
+    {
+      "id": "T1529",
+      "name": "System Shutdown/Reboot",
+      "tactic": "impact",
+      "description": "Adversaries shut down or reboot systems to interrupt access or aid in destruction of those systems.",
+      "subtechniques": []
+    },
+    {
+      "id": "T1498",
+      "name": "Network Denial of Service",
+      "tactic": "impact",
+      "description": "Adversaries perform network denial of service to degrade or block availability of targeted resources.",
+      "subtechniques": ["T1498.001", "T1498.002"]
+    }
+  ]
+}
