@@ -9,7 +9,7 @@ export default mergeConfig(
       environment: 'node',
       coverage: {
         provider: 'v8',
-        include: ['src/workers/**', 'src/services/validate.ts'],
+        include: ['src/workers/**', 'src/services/validate.ts', 'src/services/catalog.ts', 'src/store/**'],
       },
     },
   }),

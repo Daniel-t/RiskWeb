@@ -1,41 +1,45 @@
 # Project Status
 
 ## Current Phase
-Architecture migration complete — backend removed, app is now fully client-side.
-Phase 2 Wave C (frontend control implementation) is next.
+Phase 2 Wave D (Integration & Validation) -- COMPLETE 2026-05-21
 
-## Architecture Change (2026-05-17)
-**Backend removed.** All persistence moved to browser IndexedDB with JSON export/import. The NestJS backend was eliminated to simplify deployment and reduce complexity. The app is now a static SPA deployable anywhere.
+## Architecture
+**Client-side SPA only.** Backend was removed 2026-05-17. All persistence uses browser IndexedDB with JSON export/import. Deployable as a static site.
 
-Key changes:
-- `backend/` directory deleted
-- `frontend/src/services/storage.ts` — StoragePort interface + IndexedDB adapter
-- `frontend/src/services/api.ts` — now wraps IndexedDB (same interface, no HTTP)
-- `frontend/src/services/catalog.ts` — ATT&CK/D3FEND data bundled from `shared/data/`
-- `frontend/src/services/fileIO.ts` — JSON export/import for scenarios
-- `frontend/src/services/validate.ts` — runtime validation for imported data
+Key services:
+- `frontend/src/services/storage.ts` -- StoragePort interface + IndexedDB adapter
+- `frontend/src/services/api.ts` -- wraps IndexedDB (same interface, no HTTP)
+- `frontend/src/services/catalog.ts` -- ATT&CK/D3FEND data bundled from `shared/data/`
+- `frontend/src/services/fileIO.ts` -- JSON export/import for scenarios
+- `frontend/src/services/validate.ts` -- runtime validation for imported data
+
+## Wave D Summary (COMPLETE 2026-05-21)
+- **TASK-220**: Save/load with controlAssignments -- DONE
+- **TASK-221**: Baseline vs. controlled ALE comparison view -- DONE
+- **TASK-222**: End-to-end validation -- DONE (report: `/context/analyst/validation-wave-d.md`)
+- **TASK-223**: Security review -- PASS (report: `/context/secarch/review-phase2.md`)
+  - 2 Medium findings in `fileIO.ts` (file size limit, _exportedControls validation) -- fix before prod
+  - Scenarios 9-10 manual UI validation still pending
+
+## Wave C Summary (COMPLETE 2026-05-20)
+All Wave C tasks done (TASK-212 through TASK-219, gap tasks TASK-224 through TASK-228).
+- Control store, library panel, catalog browser, CRUD UI, assignment interaction, badges, override UI, simulation engine, test coverage -- all implemented.
+- LM reduction code verified correct. `applyLmReductions()` extracted into `fairEngine.ts` with unit tests.
 
 ## Phase 1 Summary (COMPLETE 2026-05-16)
-All MVP capabilities delivered and validated. Security review passed (all HIGH+MEDIUM findings resolved). Cosmetic issues ISSUE-3, ISSUE-4 deferred.
+All MVP capabilities delivered and validated. Security review passed.
 
 ## Wave A Summary (COMPLETE)
 All specs, data, and wireframes delivered and approved.
 
 ## Wave B Summary (SUPERSEDED)
-Backend tasks TASK-206 through TASK-210 were completed but are now superseded by the architecture migration. The shared types (TASK-206) remain in `shared/src/index.ts`. The backend CRUD, catalog module, and validation DTOs have been replaced by client-side equivalents.
+Backend removed. Shared types remain in `shared/src/index.ts`. Client-side equivalents replace backend services.
 
-- TASK-211 (@secarch): **cancelled** — Backend no longer exists; frontend security review needed instead
-
-## Workforce Update
-- **@test persona added** — QA/Test engineer responsible for test strategy, automated testing (Vitest, React Testing Library, Playwright), and feature validation. Context at `/context/test/context.md`.
+## Workforce
+- **@test persona active** -- QA/Test engineer, context at `/context/test/context.md`
 
 ## Blockers
 None
-
-## Next Steps
-1. Wave C frontend implementation (TASK-212 through TASK-219) — re-scope to use client-side storage/catalog instead of backend APIs
-2. Security review of client-side storage and import validation
-3. Optionally fix Phase 1 cosmetic issues (ISSUE-3, ISSUE-4)
 
 ## Features Requiring Future Backend (Deferred)
 - Multi-user collaboration / shared scenarios

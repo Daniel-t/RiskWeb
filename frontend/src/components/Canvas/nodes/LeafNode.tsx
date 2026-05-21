@@ -1,8 +1,16 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo, useState, type DragEvent } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
+import type { ControlCategory } from '@shared/index';
 import type { TreeNodeData } from '../../../store/treeStore';
 import { useControlStore } from '../../../store/controlStore';
 import { ValidationBadge } from './ValidationBadge';
+
+const categoryColorMap: Record<ControlCategory, { bg: string; text: string }> = {
+  preventive: { bg: '#dbeafe', text: '#1d4ed8' },
+  detective: { bg: '#fef3c7', text: '#92400e' },
+  corrective: { bg: '#dcfce7', text: '#166534' },
+};
+const mixedColor = { bg: '#f1f5f9', text: '#64748b' };
 
 export function LeafNode({ id, data, selected }: NodeProps) {
   const nodeData = data as unknown as TreeNodeData;
@@ -10,33 +18,110 @@ export function LeafNode({ id, data, selected }: NodeProps) {
   const status = hasInputs ? 'valid' : 'warning';
 
   const allAssignments = useControlStore((state) => state.assignments);
+  const isDraggingControl = useControlStore((state) => state.isDraggingControl);
+  const controlCache = useControlStore((state) => state.controlCache);
   const assignments = useMemo(
     () => allAssignments.filter((a) => a.nodeId === id),
     [allAssignments, id],
   );
-  const enabledCount = assignments.filter((a) => a.enabled).length;
+  const enabledAssignments = useMemo(() => assignments.filter((a) => a.enabled), [assignments]);
+  const enabledCount = enabledAssignments.length;
   const totalCount = assignments.length;
+
+  const [hoverBadge, setHoverBadge] = useState(false);
+
+  const badgeColor = useMemo(() => {
+    if (enabledCount === 0) return mixedColor;
+    const categories = new Set<ControlCategory>();
+    for (const a of enabledAssignments) {
+      const ctrl = controlCache.get(a.controlId);
+      if (ctrl) categories.add(ctrl.category);
+    }
+    if (categories.size === 1) {
+      const cat = [...categories][0];
+      return categoryColorMap[cat];
+    }
+    return mixedColor;
+  }, [enabledAssignments, controlCache]);
+
+  const popoverControls = useMemo(() => {
+    return assignments.map((a) => {
+      const ctrl = controlCache.get(a.controlId);
+      let effectiveness = '?';
+      if (ctrl) {
+        const dist = a.lefReductionOverride ?? ctrl.lefReduction;
+        if (dist.type === 'pert') effectiveness = `~${Math.round(dist.params.mode * 100)}%`;
+        else if (dist.type === 'constant')
+          effectiveness = `${Math.round(dist.params.value * 100)}%`;
+        else if (dist.type === 'lognormal') effectiveness = 'LN';
+      }
+      return {
+        name: ctrl?.name ?? 'Unknown',
+        category: ctrl?.category ?? ('preventive' as ControlCategory),
+        effectiveness,
+        enabled: a.enabled,
+      };
+    });
+  }, [assignments, controlCache]);
+
+  const dropHighlight = isDraggingControl && !selected;
+
+  const handleDragOver = useCallback((e: DragEvent) => {
+    if (e.dataTransfer.types.includes('application/riskweb-control-id')) {
+      e.preventDefault();
+      e.stopPropagation();
+      e.dataTransfer.dropEffect = 'copy';
+    }
+  }, []);
+
+  const handleDrop = useCallback(
+    (e: DragEvent) => {
+      const controlId = e.dataTransfer.getData('application/riskweb-control-id');
+      if (!controlId) return;
+      const { controlCache, addAssignment } = useControlStore.getState();
+      if (!controlCache.has(controlId)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      addAssignment(controlId, id);
+    },
+    [id],
+  );
 
   return (
     <div
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
       style={{
         width: 160,
         height: 60,
-        background: 'var(--node-leaf)',
-        border: selected ? '2px solid var(--primary)' : '1px solid #e2e8f0',
+        background: dropHighlight ? '#eff6ff' : 'var(--node-leaf)',
+        border: selected
+          ? '2px solid var(--primary)'
+          : dropHighlight
+            ? '2px dashed var(--primary)'
+            : '1px solid #e2e8f0',
         borderRadius: 8,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        boxShadow: selected ? '0 0 0 3px rgba(59, 130, 246, 0.3)' : 'none',
+        boxShadow: selected
+          ? '0 0 0 3px rgba(59, 130, 246, 0.3)'
+          : dropHighlight
+            ? '0 0 0 2px rgba(59, 130, 246, 0.15)'
+            : 'none',
         position: 'relative',
         cursor: 'pointer',
+        transition: 'border 0.15s, background 0.15s, box-shadow 0.15s',
       }}
     >
       <ValidationBadge status={status} />
-      {totalCount > 0 && (
+      {enabledCount > 0 && (
         <div
-          title={`${enabledCount} control${enabledCount !== 1 ? 's' : ''} active`}
+          onMouseEnter={(e) => {
+            e.stopPropagation();
+            setHoverBadge(true);
+          }}
+          onMouseLeave={() => setHoverBadge(false)}
           style={{
             position: 'absolute',
             bottom: 4,
@@ -46,17 +131,80 @@ export function LeafNode({ id, data, selected }: NodeProps) {
             gap: 3,
             padding: '1px 6px',
             borderRadius: 9,
-            background: '#dbeafe',
+            background: badgeColor.bg,
             fontSize: 11,
             fontWeight: 600,
-            color: '#1d4ed8',
+            color: badgeColor.text,
             lineHeight: 1.4,
+            cursor: 'default',
           }}
         >
           <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor">
             <path d="M8 1L2 4v4c0 4.4 2.6 7.3 6 8 3.4-.7 6-3.6 6-8V4L8 1z" />
           </svg>
           {enabledCount === totalCount ? totalCount : `${enabledCount}/${totalCount}`}
+          {hoverBadge && (
+            <div
+              style={{
+                position: 'absolute',
+                bottom: '100%',
+                left: 0,
+                marginBottom: 4,
+                background: 'white',
+                border: '1px solid #e2e8f0',
+                borderRadius: 6,
+                padding: 8,
+                minWidth: 180,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+                zIndex: 100,
+                pointerEvents: 'none',
+              }}
+            >
+              {popoverControls.map((c, i) => {
+                const cc = categoryColorMap[c.category];
+                return (
+                  <div
+                    key={i}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      padding: '3px 0',
+                      fontSize: 11,
+                      color: '#334155',
+                      opacity: c.enabled ? 1 : 0.5,
+                    }}
+                  >
+                    <span
+                      style={{
+                        display: 'inline-block',
+                        padding: '0 4px',
+                        borderRadius: 3,
+                        background: cc.bg,
+                        color: cc.text,
+                        fontSize: 9,
+                        fontWeight: 700,
+                      }}
+                    >
+                      {c.category.charAt(0).toUpperCase()}
+                    </span>
+                    <span
+                      style={{
+                        flex: 1,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {c.name}
+                    </span>
+                    <span style={{ color: '#64748b', flexShrink: 0 }}>{c.effectiveness}</span>
+                    {!c.enabled && <span style={{ color: '#94a3b8', fontSize: 9 }}>OFF</span>}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
       <span
@@ -75,11 +223,7 @@ export function LeafNode({ id, data, selected }: NodeProps) {
       >
         {nodeData.label}
       </span>
-      <Handle
-        type="target"
-        position={Position.Top}
-        style={handleStyle}
-      />
+      <Handle type="target" position={Position.Top} style={handleStyle} />
       {/* Leaf nodes do NOT have a source handle — they cannot be parents */}
     </div>
   );

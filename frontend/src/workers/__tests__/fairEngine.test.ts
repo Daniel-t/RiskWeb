@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { topologicalSort, evaluateTree, validateScenario } from '../fairEngine';
+import { topologicalSort, evaluateTree, validateScenario, applyLmReductions } from '../fairEngine';
 import { mulberry32 } from '../prng';
 import type {
   AttackTreeNode,
@@ -248,5 +248,198 @@ describe('validateScenario', () => {
     ];
     const errors = validateScenario(nodes, [], validConfig, validLM);
     expect(errors.some((e) => e.includes('missing LEF'))).toBe(true);
+  });
+});
+
+// ---------- control overrides ----------
+
+describe('evaluateTree - control overrides', () => {
+  it('lefReductionOverride takes precedence over control base value', () => {
+    const nodes = [leaf('l', constantLef(10))];
+    const sorted = topologicalSort(nodes, []);
+
+    const control: Control = {
+      id: 'c1',
+      name: 'Test',
+      category: 'preventive',
+      attackTechniques: [],
+      d3fendTechniques: [],
+      lefReduction: constantLef(0.5), // base: 50% reduction
+      metadata: { created: '', modified: '' },
+    };
+    const assignment: ControlAssignment = {
+      id: 'a1',
+      controlId: 'c1',
+      nodeId: 'l',
+      enabled: true,
+      lefReductionOverride: constantLef(0.8), // override: 80% reduction
+    };
+
+    const nodeAssignments = new Map([['l', [assignment]]]);
+    const controlMap = new Map([['c1', control]]);
+
+    const result = evaluateTree(nodes, [], sorted, makeRng(), nodeAssignments, controlMap);
+    // Should use override (0.8), not base (0.5): 10 * (1 - 0.8) = 2.0
+    expect(result.get('l')!.lef).toBeCloseTo(2.0, 10);
+  });
+});
+
+// ---------- orphaned assignments ----------
+
+describe('evaluateTree - orphaned assignments', () => {
+  it('assignment referencing missing control is silently skipped', () => {
+    const nodes = [leaf('l', constantLef(10))];
+    const sorted = topologicalSort(nodes, []);
+
+    const assignment: ControlAssignment = {
+      id: 'a1',
+      controlId: 'missing-control',
+      nodeId: 'l',
+      enabled: true,
+    };
+
+    const nodeAssignments = new Map([['l', [assignment]]]);
+    const controlMap = new Map<string, Control>(); // empty — no controls
+
+    const result = evaluateTree(nodes, [], sorted, makeRng(), nodeAssignments, controlMap);
+    // Orphaned assignment skipped, LEF unchanged
+    expect(result.get('l')!.lef).toBe(10);
+  });
+});
+
+// ---------- reproducibility ----------
+
+describe('evaluateTree - reproducibility', () => {
+  const pertLef: Distribution = { type: 'pert', params: { min: 1, mode: 5, max: 20 } };
+
+  it('same seed produces identical results', () => {
+    const nodes = [gate('root', 'or'), leaf('a', pertLef), leaf('b', pertLef)];
+    const edges = [edge('root', 'a'), edge('root', 'b')];
+    const sorted = topologicalSort(nodes, edges);
+
+    const result1 = evaluateTree(nodes, edges, sorted, makeRng(42));
+    const result2 = evaluateTree(nodes, edges, sorted, makeRng(42));
+
+    expect(result1.get('a')!.lef).toBe(result2.get('a')!.lef);
+    expect(result1.get('b')!.lef).toBe(result2.get('b')!.lef);
+    expect(result1.get('root')!.lef).toBe(result2.get('root')!.lef);
+  });
+
+  it('different seeds produce different results', () => {
+    const nodes = [leaf('l', pertLef)];
+    const sorted = topologicalSort(nodes, []);
+
+    const result1 = evaluateTree(nodes, [], sorted, makeRng(1));
+    const result2 = evaluateTree(nodes, [], sorted, makeRng(99999));
+
+    expect(result1.get('l')!.lef).not.toBe(result2.get('l')!.lef);
+  });
+});
+
+// ---------- applyLmReductions ----------
+
+describe('applyLmReductions', () => {
+  const makeControl = (id: string, lmReduction?: Distribution): Control => ({
+    id,
+    name: id,
+    category: 'preventive',
+    attackTechniques: [],
+    d3fendTechniques: [],
+    lefReduction: constantLef(0.5),
+    lmReduction,
+    metadata: { created: '', modified: '' },
+  });
+
+  it('single control with LM reduction reduces scenario LM', () => {
+    const ctrl = makeControl('c1', constantLef(0.4));
+    const assignment: ControlAssignment = {
+      id: 'a1',
+      controlId: 'c1',
+      nodeId: 'l',
+      enabled: true,
+    };
+    const controlMap = new Map([['c1', ctrl]]);
+    const result = applyLmReductions(10000, [assignment], controlMap, makeRng());
+    // LM = 10000 * (1 - 0.4) = 6000
+    expect(result).toBeCloseTo(6000, 5);
+  });
+
+  it('two controls with LM reduction stack multiplicatively', () => {
+    const ctrl1 = makeControl('c1', constantLef(0.3));
+    const ctrl2 = makeControl('c2', constantLef(0.5));
+    const assignments: ControlAssignment[] = [
+      { id: 'a1', controlId: 'c1', nodeId: 'l', enabled: true },
+      { id: 'a2', controlId: 'c2', nodeId: 'l', enabled: true },
+    ];
+    const controlMap = new Map([
+      ['c1', ctrl1],
+      ['c2', ctrl2],
+    ]);
+    const result = applyLmReductions(10000, assignments, controlMap, makeRng());
+    // passthrough = (1-0.3) * (1-0.5) = 0.7 * 0.5 = 0.35
+    // LM = 10000 * 0.35 = 3500
+    expect(result).toBeCloseTo(3500, 5);
+  });
+
+  it('control with only LEF reduction does not affect LM', () => {
+    const ctrl = makeControl('c1'); // no lmReduction
+    const assignment: ControlAssignment = {
+      id: 'a1',
+      controlId: 'c1',
+      nodeId: 'l',
+      enabled: true,
+    };
+    const controlMap = new Map([['c1', ctrl]]);
+    const result = applyLmReductions(10000, [assignment], controlMap, makeRng());
+    expect(result).toBe(10000);
+  });
+
+  it('LM override takes precedence over base value', () => {
+    const ctrl = makeControl('c1', constantLef(0.3)); // base: 30%
+    const assignment: ControlAssignment = {
+      id: 'a1',
+      controlId: 'c1',
+      nodeId: 'l',
+      enabled: true,
+      lmReductionOverride: constantLef(0.7), // override: 70%
+    };
+    const controlMap = new Map([['c1', ctrl]]);
+    const result = applyLmReductions(10000, [assignment], controlMap, makeRng());
+    // Should use override (0.7): 10000 * (1 - 0.7) = 3000
+    expect(result).toBeCloseTo(3000, 5);
+  });
+
+  it('disabled assignment LM reduction is skipped', () => {
+    const ctrl = makeControl('c1', constantLef(0.5));
+    const assignment: ControlAssignment = {
+      id: 'a1',
+      controlId: 'c1',
+      nodeId: 'l',
+      enabled: false,
+    };
+    const controlMap = new Map([['c1', ctrl]]);
+    const result = applyLmReductions(10000, [assignment], controlMap, makeRng());
+    expect(result).toBe(10000);
+  });
+
+  it('empty assignments returns base LM unchanged', () => {
+    const controlMap = new Map<string, Control>();
+    const result = applyLmReductions(10000, [], controlMap, makeRng());
+    expect(result).toBe(10000);
+  });
+
+  it('same seed produces reproducible LM reductions with PERT', () => {
+    const pertDist: Distribution = { type: 'pert', params: { min: 0.1, mode: 0.3, max: 0.6 } };
+    const ctrl = makeControl('c1', pertDist);
+    const assignment: ControlAssignment = {
+      id: 'a1',
+      controlId: 'c1',
+      nodeId: 'l',
+      enabled: true,
+    };
+    const controlMap = new Map([['c1', ctrl]]);
+    const r1 = applyLmReductions(10000, [assignment], controlMap, makeRng(42));
+    const r2 = applyLmReductions(10000, [assignment], controlMap, makeRng(42));
+    expect(r1).toBe(r2);
   });
 });

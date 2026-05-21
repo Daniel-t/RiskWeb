@@ -1,4 +1,11 @@
-import type { AttackTreeNode, Edge, Distribution, SimulationConfig, Control, ControlAssignment } from '@shared/index';
+import type {
+  AttackTreeNode,
+  Edge,
+  Distribution,
+  SimulationConfig,
+  Control,
+  ControlAssignment,
+} from '@shared/index';
 import { sampleDistribution } from './distributions';
 
 export interface NodeResult {
@@ -141,10 +148,7 @@ export function evaluateTree(
         const anyAboveOne = childResults.some((r) => r.lef > 1);
         if (anyAboveOne) {
           const maxLEF = Math.max(...childResults.map((r) => r.lef));
-          const clampedProduct = childResults.reduce(
-            (acc, r) => acc * (1 - Math.min(r.lef, 1)),
-            1,
-          );
+          const clampedProduct = childResults.reduce((acc, r) => acc * (1 - Math.min(r.lef, 1)), 1);
           combinedLEF = (1 - clampedProduct) * maxLEF;
         } else {
           combinedLEF = 1 - childResults.reduce((acc, r) => acc * (1 - r.lef), 1);
@@ -159,6 +163,31 @@ export function evaluateTree(
   }
 
   return results;
+}
+
+/**
+ * Apply LM reductions from control assignments (multiplicative stacking).
+ * Returns the reduced LM value.
+ */
+export function applyLmReductions(
+  baseLm: number,
+  lmAssignments: ControlAssignment[],
+  controlMap: Map<string, Control>,
+  rng: () => number,
+): number {
+  if (lmAssignments.length === 0) return baseLm;
+
+  let lmPassThrough = 1;
+  for (const a of lmAssignments) {
+    if (!a.enabled) continue;
+    const ctrl = controlMap.get(a.controlId);
+    if (!ctrl || !ctrl.lmReduction) continue;
+    const dist = a.lmReductionOverride ?? ctrl.lmReduction;
+    const reduction = sampleDistribution(dist, rng);
+    lmPassThrough *= 1 - Math.max(0, Math.min(1, reduction));
+  }
+  lmPassThrough = Math.max(0, Math.min(1, lmPassThrough));
+  return baseLm * lmPassThrough;
 }
 
 /**

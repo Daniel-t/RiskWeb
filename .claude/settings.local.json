@@ -5,7 +5,8 @@
       "Bash(grep -E \"\\\\.\\(json|ts\\)$|^d\")",
       "Bash(npx tsc:*)",
       "mcp__playwright__browser_snapshot",
-      "mcp__playwright__browser_fill_form"
+      "mcp__playwright__browser_fill_form",
+      "Bash(npm run:*)"
     ]
   }
 }

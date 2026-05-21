@@ -23,6 +23,7 @@ import { useControlStore } from './store/controlStore';
 import { useSimulation } from './hooks/useSimulation';
 import { getScenario, createScenario, updateScenario } from './services/api';
 import { exportScenarioToFile, importScenarioFromFile } from './services/fileIO';
+import { storage } from './services/storage';
 
 function App() {
   const treeStore = useTreeStore();
@@ -34,7 +35,9 @@ function App() {
   const [loadModalOpen, setLoadModalOpen] = useState(false);
   const [controlFormOpen, setControlFormOpen] = useState(false);
   const [editControlId, setEditControlId] = useState<string | null>(null);
-  const [controlPrefill, setControlPrefill] = useState<Partial<Omit<import('@shared/index').Control, 'id' | 'metadata'>> | undefined>(undefined);
+  const [controlPrefill, setControlPrefill] = useState<
+    Partial<Omit<import('@shared/index').Control, 'id' | 'metadata'>> | undefined
+  >(undefined);
   const [catalogOpen, setCatalogOpen] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<{
     title: string;
@@ -58,7 +61,13 @@ function App() {
       simulationConfig: scenarioStore.simulationConfig,
       results: simulationStore.results ?? undefined,
     };
-  }, [treeStore.nodes, treeStore.edges, scenarioStore, simulationStore.results, controlStore.assignments]);
+  }, [
+    treeStore.nodes,
+    treeStore.edges,
+    scenarioStore,
+    simulationStore.results,
+    controlStore.assignments,
+  ]);
 
   const handleNew = useCallback(() => {
     if (scenarioStore.isDirty) {
@@ -149,9 +158,7 @@ function App() {
       },
     };
     // Resolve full Control objects needed by simulation
-    const controlIds = new Set(
-      (scenario.controlAssignments ?? []).map((a) => a.controlId),
-    );
+    const controlIds = new Set((scenario.controlAssignments ?? []).map((a) => a.controlId));
     const controls = await Promise.all(
       [...controlIds].map((id) => controlStore.getControl(id).catch(() => null)),
     );
@@ -170,13 +177,31 @@ function App() {
         modified: new Date().toISOString(),
       },
     };
-    exportScenarioToFile(scenario);
-  }, [buildScenario, scenarioStore]);
+    exportScenarioToFile(scenario, (id) => controlStore.controlCache.get(id));
+  }, [buildScenario, scenarioStore, controlStore]);
 
   const handleImport = useCallback(async () => {
     const doImport = async () => {
-      const scenario = await importScenarioFromFile();
-      if (!scenario) return;
+      const result = await importScenarioFromFile();
+      if (!result) return;
+      const { scenario, importedControls, warnings } = result;
+
+      // Import bundled controls (preserve original IDs for assignment references)
+      let added = 0;
+      let skipped = 0;
+      for (const control of importedControls) {
+        try {
+          await storage.getControl(control.id);
+          skipped++; // Already exists
+        } catch {
+          await storage.saveControl(control);
+          added++;
+        }
+      }
+      if (added > 0) {
+        await controlStore.loadControls(); // Refresh control list
+      }
+
       treeStore.loadTree(scenario.nodes, scenario.edges);
       scenarioStore.loadScenario({
         id: scenario.id,
@@ -190,6 +215,15 @@ function App() {
         simulationStore.setResults(scenario.results, []);
       } else {
         simulationStore.clear();
+      }
+
+      // Show import summary
+      const messages: string[] = [];
+      if (added > 0) messages.push(`Imported ${added} control(s)`);
+      if (skipped > 0) messages.push(`${skipped} control(s) already existed, skipped`);
+      if (warnings.length > 0) messages.push(...warnings);
+      if (messages.length > 0) {
+        alert('Import notes:\n\n' + messages.join('\n'));
       }
     };
 
@@ -266,11 +300,18 @@ function App() {
           <ResultsDrawer>
             {simulationStore.results && (
               <>
-                <ResultsSummary results={simulationStore.results} />
+                <ResultsSummary
+                  results={simulationStore.results}
+                  baselineResults={simulationStore.baselineResults}
+                  mode={simulationStore.activeTab}
+                />
                 {simulationStore.rawALEValues && simulationStore.rawALEValues.length > 0 && (
                   <ALEHistogram
                     rawALEValues={simulationStore.rawALEValues}
                     results={simulationStore.results}
+                    baselineRawALE={simulationStore.baselineRawALE}
+                    baselineResults={simulationStore.baselineResults}
+                    mode={simulationStore.activeTab}
                   />
                 )}
               </>

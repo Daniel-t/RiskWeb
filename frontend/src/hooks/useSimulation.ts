@@ -12,6 +12,8 @@ interface WorkerCompleteMessage {
   type: 'complete';
   result: SimulationResult;
   rawALEValues: number[];
+  baselineResult?: SimulationResult;
+  baselineRawALE?: number[];
 }
 
 interface WorkerErrorMessage {
@@ -37,10 +39,9 @@ export function useSimulation() {
       setRunning(true);
       setProgress(0);
 
-      const worker = new Worker(
-        new URL('../workers/simulation.worker.ts', import.meta.url),
-        { type: 'module' },
-      );
+      const worker = new Worker(new URL('../workers/simulation.worker.ts', import.meta.url), {
+        type: 'module',
+      });
 
       workerRef.current = worker;
 
@@ -51,7 +52,7 @@ export function useSimulation() {
             setProgress(msg.percent);
             break;
           case 'complete':
-            setResults(msg.result, msg.rawALEValues);
+            setResults(msg.result, msg.rawALEValues, msg.baselineResult, msg.baselineRawALE);
             worker.terminate();
             workerRef.current = null;
             break;

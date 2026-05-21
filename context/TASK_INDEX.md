@@ -63,22 +63,34 @@
 
 ## Phase 2: Controls & Enrichment -- Wave C (Frontend Implementation)
 
-| ID | Title | Assigned | Status | Priority | Depends On |
-|----|-------|----------|--------|----------|------------|
-| TASK-212 | Control Zustand store + IndexedDB storage | @frontend | pending | high | TASK-206, TASK-204 |
-| TASK-213 | Control library browser panel | @frontend | pending | high | TASK-212 |
-| TASK-214 | ATT&CK/D3FEND catalog browser (client-side) | @frontend | pending | medium | TASK-212 |
-| TASK-215 | Control-to-node assignment interaction | @frontend | pending | high | TASK-213 |
-| TASK-216 | Visual control badges on leaf nodes | @frontend | pending | medium | TASK-215 |
-| TASK-217 | Node controls panel in PropertyPanel | @frontend | pending | high | TASK-215 |
-| TASK-218 | Update simulation engine for control reductions | @frontend | pending | high | TASK-203, TASK-206, TASK-215 |
-| TASK-219 | Control CRUD UI (create/edit/delete) | @frontend | pending | medium | TASK-213 |
+| ID | Title | Assigned | Status | Priority | Depends On | Reviewers |
+|----|-------|----------|--------|----------|------------|-----------|
+| TASK-212 | Control Zustand store + IndexedDB storage | @frontend | done | high | TASK-206, TASK-204 | @secarch, @analyst, @test |
+| TASK-213 | Control library browser panel | @frontend | done | high | TASK-212 | @ux, @secarch, @test |
+| TASK-214 | ATT&CK/D3FEND catalog browser (client-side) | @frontend | done | medium | TASK-212 | @threat, @secarch, @test |
+| TASK-215 | Control-to-node assignment interaction | @frontend | done | high | TASK-213 | @ux, @secarch, @test |
+| TASK-216 | Visual control badges on leaf nodes | @frontend | done | medium | TASK-215 | @ux, @test |
+| TASK-217 | Node controls panel in PropertyPanel | @frontend | done | high | TASK-215 | @ux, @analyst, @test |
+| TASK-218 | Update simulation engine for control reductions | @frontend | done | high | TASK-203, TASK-206, TASK-215 | @analyst, @secarch, @test |
+| TASK-219 | Control CRUD UI (create/edit/delete) | @frontend | done | medium | TASK-213 | @ux, @secarch, @test |
+
+## Phase 2: Controls & Enrichment -- Wave C Gap Tasks
+
+| ID | Title | Assigned | Status | Priority | Depends On | Reviewers |
+|----|-------|----------|--------|----------|------------|-----------|
+| TASK-224 | Drag-drop control assignment from sidebar to canvas | @frontend | done | high | TASK-215 | @ux, @secarch, @test |
+| TASK-225 | Override UI in NodeControlsSection | @frontend | done | high | TASK-217 | @ux, @analyst, @test |
+| TASK-226 | Control badge polish (category colors + hover tooltip) | @frontend | done | medium | TASK-216 | @ux, @test |
+| TASK-227 | Verify LM reduction path in simulation engine | @frontend | done | high | TASK-218 | @analyst, @secarch |
+| TASK-228 | Test coverage for Wave C (unit + integration) | @test | done | high | TASK-212, TASK-218 | @analyst, @secarch |
 
 ## Phase 2: Controls & Enrichment -- Wave D (Integration & Validation)
 
-| ID | Title | Assigned | Status | Priority | Depends On |
-|----|-------|----------|--------|----------|------------|
-| TASK-220 | Save/load with controlAssignments | @frontend | pending | high | TASK-218 |
-| TASK-221 | Baseline vs. controlled ALE comparison view | @frontend | pending | medium | TASK-218 |
-| TASK-222 | End-to-end validation (controls impact correctness) | @analyst | pending | high | TASK-218, TASK-220 |
-| TASK-223 | Security review (Phase 2 frontend + storage) | @secarch | pending | high | TASK-212..TASK-221 |
+> Wave D complete (2026-05-21). All 4 tasks done.
+
+| ID | Title | Assigned | Status | Priority | Depends On | Reviewers |
+|----|-------|----------|--------|----------|------------|-----------|
+| TASK-220 | Save/load with controlAssignments | @frontend | done | high | TASK-218, TASK-224..TASK-228 | @secarch, @test |
+| TASK-221 | Baseline vs. controlled ALE comparison view | @frontend | done | medium | TASK-218, TASK-224..TASK-228 | @ux, @analyst, @test |
+| TASK-222 | End-to-end validation (controls impact correctness) | @analyst | done | high | TASK-220, TASK-221 | @secarch, @test |
+| TASK-223 | Security review (Phase 2 frontend + storage) | @secarch | done | high | TASK-220, TASK-221 | @analyst, @test |

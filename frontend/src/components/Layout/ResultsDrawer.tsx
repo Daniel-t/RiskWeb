@@ -1,14 +1,20 @@
 import type { ReactNode } from 'react';
 import { useScenarioStore } from '../../store/scenarioStore';
-import { useSimulationStore } from '../../store/simulationStore';
+import { useSimulationStore, type ComparisonTab } from '../../store/simulationStore';
 
 interface ResultsDrawerProps {
   children: ReactNode;
 }
 
+const tabs: { key: ComparisonTab; label: string }[] = [
+  { key: 'controlled', label: 'Controlled' },
+  { key: 'baseline', label: 'Baseline' },
+  { key: 'compare', label: 'Compare' },
+];
+
 export function ResultsDrawer({ children }: ResultsDrawerProps) {
   const { resultsDrawerExpanded, toggleResultsDrawer } = useScenarioStore();
-  const { results } = useSimulationStore();
+  const { results, hasControls, activeTab, setActiveTab } = useSimulationStore();
 
   const hasResults = results !== null;
   const chevron = resultsDrawerExpanded ? '\u25BC' : '\u25B2';
@@ -21,31 +27,57 @@ export function ResultsDrawer({ children }: ResultsDrawerProps) {
         flexShrink: 0,
       }}
     >
-      <button
-        onClick={toggleResultsDrawer}
-        style={{
-          width: '100%',
-          height: 32,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 8,
-          fontSize: 13,
-          fontWeight: 500,
-          color: hasResults ? 'var(--text-primary)' : 'var(--text-muted)',
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-        }}
-      >
-        <span>{chevron}</span>
-        <span>Results</span>
-        {hasResults && results.duration && (
-          <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>
-            (last run: {Math.round(results.duration)}ms)
-          </span>
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        <button
+          onClick={toggleResultsDrawer}
+          style={{
+            flex: 1,
+            height: 32,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            fontSize: 13,
+            fontWeight: 500,
+            color: hasResults ? 'var(--text-primary)' : 'var(--text-muted)',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+          }}
+        >
+          <span>{chevron}</span>
+          <span>Results</span>
+          {hasResults && results.duration && (
+            <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>
+              (last run: {Math.round(results.duration)}ms)
+            </span>
+          )}
+        </button>
+
+        {hasControls && resultsDrawerExpanded && (
+          <div style={{ display: 'flex', gap: 2, marginRight: 12 }}>
+            {tabs.map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                style={{
+                  padding: '4px 10px',
+                  fontSize: 12,
+                  fontWeight: activeTab === tab.key ? 600 : 400,
+                  color: activeTab === tab.key ? 'var(--text-primary)' : 'var(--text-muted)',
+                  background: activeTab === tab.key ? 'var(--bg-surface)' : 'transparent',
+                  border: '1px solid',
+                  borderColor: activeTab === tab.key ? 'var(--border-panel)' : 'transparent',
+                  borderRadius: 4,
+                  cursor: 'pointer',
+                }}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         )}
-      </button>
+      </div>
 
       {resultsDrawerExpanded && (
         <div

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { Control, ControlCategory } from '@shared/index';
+import type { Control, ControlCategory, Distribution } from '@shared/index';
 import { useControlStore } from '../../store/controlStore';
 import { ControlPickerPopover } from '../Controls/ControlPickerPopover';
+import { DistributionInput } from './DistributionInput';
 
 interface NodeControlsSectionProps {
   nodeId: string;
@@ -14,9 +15,20 @@ const categoryColors: Record<ControlCategory, { bg: string; text: string }> = {
 };
 
 export function NodeControlsSection({ nodeId }: NodeControlsSectionProps) {
-  const { assignments, toggleAssignment, removeAssignment, getControl } = useControlStore();
+  const { assignments, toggleAssignment, removeAssignment, getControl, updateAssignmentOverride } =
+    useControlStore();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [controlDetails, setControlDetails] = useState<Map<string, Control>>(new Map());
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+
+  const toggleExpanded = useCallback((assignmentId: string) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(assignmentId)) next.delete(assignmentId);
+      else next.add(assignmentId);
+      return next;
+    });
+  }, []);
 
   const nodeAssignments = useMemo(
     () => assignments.filter((a) => a.nodeId === nodeId),
@@ -60,7 +72,10 @@ export function NodeControlsSection({ nodeId }: NodeControlsSectionProps) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div
+        className="section-header"
+        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+      >
         <span>Assigned Controls ({nodeAssignments.length})</span>
       </div>
 
@@ -77,63 +92,155 @@ export function NodeControlsSection({ nodeId }: NodeControlsSectionProps) {
             let effectText = '?';
             if (dist) {
               if (dist.type === 'pert') effectText = `~${Math.round(dist.params.mode * 100)}%`;
-              else if (dist.type === 'constant') effectText = `${Math.round(dist.params.value * 100)}%`;
+              else if (dist.type === 'constant')
+                effectText = `${Math.round(dist.params.value * 100)}%`;
               else if (dist.type === 'lognormal') effectText = 'LN';
             }
+            const hasOverride = !!(a.lefReductionOverride || a.lmReductionOverride);
+            const isExpanded = expanded.has(a.id);
 
             return (
-              <div
-                key={a.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  padding: '6px 8px',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: 6,
-                  opacity: a.enabled ? 1 : 0.6,
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={a.enabled}
-                  onChange={() => toggleAssignment(a.id)}
-                  style={{ cursor: 'pointer' }}
-                />
-                <span
+              <div key={a.id} style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                <div
                   style={{
-                    display: 'inline-block',
-                    padding: '1px 5px',
-                    borderRadius: 4,
-                    background: cat.bg,
-                    color: cat.text,
-                    fontSize: 10,
-                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '6px 8px',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: isExpanded ? '6px 6px 0 0' : 6,
+                    opacity: a.enabled ? 1 : 0.6,
                   }}
                 >
-                  {ctrl?.category?.charAt(0).toUpperCase() ?? '?'}
-                </span>
-                <span style={{ flex: 1, fontSize: 12, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {ctrl?.name ?? 'Unknown'}
-                </span>
-                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                  {effectText}
-                </span>
-                <button
-                  onClick={() => removeAssignment(a.id)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    fontSize: 14,
-                    color: 'var(--text-muted)',
-                    padding: '0 2px',
-                    lineHeight: 1,
-                  }}
-                  title="Remove"
-                >
-                  x
-                </button>
+                  <input
+                    type="checkbox"
+                    checked={a.enabled}
+                    onChange={() => toggleAssignment(a.id)}
+                    style={{ cursor: 'pointer' }}
+                  />
+                  <span
+                    style={{
+                      display: 'inline-block',
+                      padding: '1px 5px',
+                      borderRadius: 4,
+                      background: cat.bg,
+                      color: cat.text,
+                      fontSize: 10,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {ctrl?.category?.charAt(0).toUpperCase() ?? '?'}
+                  </span>
+                  {hasOverride && (
+                    <span
+                      style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: '50%',
+                        background: 'var(--primary)',
+                        flexShrink: 0,
+                      }}
+                      title="Override active"
+                    />
+                  )}
+                  <span
+                    style={{
+                      flex: 1,
+                      fontSize: 12,
+                      fontWeight: 500,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {ctrl?.name ?? 'Unknown'}
+                  </span>
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{effectText}</span>
+                  <button
+                    onClick={() => toggleExpanded(a.id)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: 12,
+                      color: 'var(--text-muted)',
+                      padding: '0 2px',
+                      lineHeight: 1,
+                      transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+                      transition: 'transform 0.15s',
+                    }}
+                    title="Override settings"
+                  >
+                    ▶
+                  </button>
+                  <button
+                    onClick={() => removeAssignment(a.id)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: 14,
+                      color: 'var(--text-muted)',
+                      padding: '0 2px',
+                      lineHeight: 1,
+                    }}
+                    title="Remove"
+                  >
+                    ×
+                  </button>
+                </div>
+                {isExpanded && (
+                  <div
+                    style={{
+                      border: '1px solid #e2e8f0',
+                      borderTop: 'none',
+                      borderRadius: '0 0 6px 6px',
+                      padding: '8px',
+                      background: '#f8fafc',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 8,
+                    }}
+                  >
+                    <DistributionInput
+                      label="LEF Reduction Override"
+                      value={a.lefReductionOverride ?? ctrl?.lefReduction}
+                      onChange={(d: Distribution) =>
+                        updateAssignmentOverride(a.id, { lefReductionOverride: d })
+                      }
+                    />
+                    {ctrl?.lmReduction && (
+                      <DistributionInput
+                        label="LM Reduction Override"
+                        value={a.lmReductionOverride ?? ctrl.lmReduction}
+                        onChange={(d: Distribution) =>
+                          updateAssignmentOverride(a.id, { lmReductionOverride: d })
+                        }
+                      />
+                    )}
+                    {hasOverride && (
+                      <button
+                        onClick={() =>
+                          updateAssignmentOverride(a.id, {
+                            lefReductionOverride: undefined,
+                            lmReductionOverride: undefined,
+                          })
+                        }
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          fontSize: 11,
+                          color: 'var(--primary)',
+                          padding: 0,
+                          textAlign: 'left',
+                        }}
+                      >
+                        Reset to defaults
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -151,7 +258,12 @@ export function NodeControlsSection({ nodeId }: NodeControlsSectionProps) {
                 }}
               />
             </div>
-            <div style={{ fontSize: 11, color: combinedReduction > 99 ? 'var(--warning)' : 'var(--text-muted)' }}>
+            <div
+              style={{
+                fontSize: 11,
+                color: combinedReduction > 99 ? 'var(--warning)' : 'var(--text-muted)',
+              }}
+            >
               Combined: ~{combinedReduction}% LEF reduction
               {combinedReduction > 99 && ' (excessive)'}
             </div>
@@ -168,10 +280,7 @@ export function NodeControlsSection({ nodeId }: NodeControlsSectionProps) {
           + Add Control
         </button>
         {pickerOpen && (
-          <ControlPickerPopover
-            nodeId={nodeId}
-            onClose={() => setPickerOpen(false)}
-          />
+          <ControlPickerPopover nodeId={nodeId} onClose={() => setPickerOpen(false)} />
         )}
       </div>
     </div>

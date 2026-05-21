@@ -148,5 +148,5 @@ Storing raw LEF arrays for every node increases memory usage:
 
 ## Open Questions for Human Review
 
-1. Should the sparkline be visible by default, or togglable via a canvas toolbar button? (Concern: visual clutter on large trees)
-2. For the "sim outdated" state, should we clear the curves entirely or show them faded? (Spec proposes faded)
+1. Should the sparkline be visible by default, or togglable via a canvas toolbar button? (Concern: visual clutter on large trees) - YES
+2. For the "sim outdated" state, should we clear the curves entirely or show them faded? (Spec proposes faded) - FADED

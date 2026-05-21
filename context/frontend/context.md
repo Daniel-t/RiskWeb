@@ -54,7 +54,7 @@ All @frontend tasks are reviewed. Expect these reviewers:
 
 ## Current Focus
 
-TASK-002 complete. Next frontend tasks (TASK-107, TASK-108) are blocked on upstream specs/types.
+Wave D complete. TASK-220 (save/load with controlAssignments) and TASK-221 (baseline vs. controlled comparison view) both done 2026-05-21. Awaiting TASK-223 security review.
 
 ## Decisions Log
 

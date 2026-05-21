@@ -8,29 +8,24 @@ export interface ControlStore {
   controlCache: Map<string, Control>;
   assignments: ControlAssignment[];
   isLoading: boolean;
+  isDraggingControl: boolean;
 
+  setDraggingControl: (dragging: boolean) => void;
   loadControls: () => Promise<void>;
   getControl: (id: string) => Promise<Control>;
-  createControl: (
-    data: Omit<Control, 'id' | 'metadata'>,
-  ) => Promise<Control>;
-  updateControl: (
-    id: string,
-    data: Omit<Control, 'id' | 'metadata'>,
-  ) => Promise<Control>;
+  createControl: (data: Omit<Control, 'id' | 'metadata'>) => Promise<Control>;
+  updateControl: (id: string, data: Omit<Control, 'id' | 'metadata'>) => Promise<Control>;
   deleteControl: (id: string) => Promise<void>;
 
   loadAssignments: (assignments: ControlAssignment[]) => void;
   resetAssignments: () => void;
-  addAssignment: (controlId: string, nodeId: string) => void;
+  addAssignment: (controlId: string, nodeId: string) => boolean;
   removeAssignment: (assignmentId: string) => void;
   removeAssignmentsForNode: (nodeId: string) => void;
   toggleAssignment: (assignmentId: string) => void;
   updateAssignmentOverride: (
     assignmentId: string,
-    overrides: Partial<
-      Pick<ControlAssignment, 'lefReductionOverride' | 'lmReductionOverride'>
-    >,
+    overrides: Partial<Pick<ControlAssignment, 'lefReductionOverride' | 'lmReductionOverride'>>,
   ) => void;
   getNodeAssignments: (nodeId: string) => ControlAssignment[];
 }
@@ -40,6 +35,11 @@ export const useControlStore = create<ControlStore>((set, get) => ({
   controlCache: new Map(),
   assignments: [],
   isLoading: false,
+  isDraggingControl: false,
+
+  setDraggingControl(dragging) {
+    set({ isDraggingControl: dragging });
+  },
 
   async loadControls() {
     set({ isLoading: true });
@@ -106,7 +106,7 @@ export const useControlStore = create<ControlStore>((set, get) => ({
   addAssignment(controlId, nodeId) {
     const existing = get().assignments;
     if (existing.some((a) => a.controlId === controlId && a.nodeId === nodeId)) {
-      return;
+      return false;
     }
     const assignment: ControlAssignment = {
       id: crypto.randomUUID(),
@@ -116,6 +116,7 @@ export const useControlStore = create<ControlStore>((set, get) => ({
     };
     set((state) => ({ assignments: [...state.assignments, assignment] }));
     useScenarioStore.getState().markDirty();
+    return true;
   },
 
   removeAssignment(assignmentId) {

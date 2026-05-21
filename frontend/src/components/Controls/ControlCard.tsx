@@ -1,5 +1,6 @@
 import type { DragEvent } from 'react';
 import type { ControlMeta, ControlCategory } from '@shared/index';
+import { useControlStore } from '../../store/controlStore';
 
 const categoryStyles: Record<ControlCategory, { bg: string; text: string; label: string }> = {
   preventive: { bg: '#dbeafe', text: '#1d4ed8', label: 'P' },
@@ -19,12 +20,18 @@ export function ControlCard({ control, onClick, onDoubleClick }: ControlCardProp
   const onDragStart = (e: DragEvent) => {
     e.dataTransfer.setData('application/riskweb-control-id', control.id);
     e.dataTransfer.effectAllowed = 'copy';
+    useControlStore.getState().setDraggingControl(true);
+  };
+
+  const onDragEnd = () => {
+    useControlStore.getState().setDraggingControl(false);
   };
 
   return (
     <div
       draggable
       onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
       onClick={onClick}
       onDoubleClick={onDoubleClick}
       style={{
@@ -57,7 +64,15 @@ export function ControlCard({ control, onClick, onDoubleClick }: ControlCardProp
       >
         {cat.label}
       </span>
-      <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }}>
+      <span
+        style={{
+          flex: 1,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          fontWeight: 500,
+        }}
+      >
         {control.name}
       </span>
       {control.attackTechniques.length > 0 && (
