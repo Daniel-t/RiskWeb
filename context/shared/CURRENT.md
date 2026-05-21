@@ -1,6 +1,8 @@
 # Project Status
 
 ## Current Phase
+Phase 3 Wave A (Specs & Design) -- IN PROGRESS 2026-05-21
+
 Phase 2 Wave D (Integration & Validation) -- COMPLETE 2026-05-21
 
 ## Architecture
@@ -37,6 +39,16 @@ Backend removed. Shared types remain in `shared/src/index.ts`. Client-side equiv
 
 ## Workforce
 - **@test persona active** -- QA/Test engineer, context at `/context/test/context.md`
+
+## Phase 3 Wave A Summary (IN PROGRESS)
+- **TASK-301**: FAIR taxonomy expansion spec (TEF x Vulnerability) -- DRAFT
+- **TASK-302**: Sensitivity analysis spec (control-toggle + OAT) -- DRAFT
+- **TASK-303**: Loss exceedance curve spec -- DRAFT
+- **TASK-304**: Scenario comparison spec -- DRAFT
+- **TASK-305**: Phase 3 UI wireframes -- APPROVED (@ux, spec at `context/ux/spec-phase3-wireframes.md`)
+  - Covers: results drawer tab restructure, TEF x Vulnerability toggle, sensitivity tornado charts, loss exceedance curve, scenario comparison view
+  - Key design decision: two-level tab scheme (primary=visualization type, secondary=dataset toggle)
+- Bayesian updates (E3.2) deferred to future phase
 
 ## Blockers
 None

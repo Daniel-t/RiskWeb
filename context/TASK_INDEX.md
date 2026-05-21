@@ -94,3 +94,41 @@
 | TASK-221 | Baseline vs. controlled ALE comparison view | @frontend | done | medium | TASK-218, TASK-224..TASK-228 | @ux, @analyst, @test |
 | TASK-222 | End-to-end validation (controls impact correctness) | @analyst | done | high | TASK-220, TASK-221 | @secarch, @test |
 | TASK-223 | Security review (Phase 2 frontend + storage) | @secarch | done | high | TASK-220, TASK-221 | @analyst, @test |
+
+## Phase 3: Advanced Analysis -- Wave A (Specs & Design)
+
+| ID | Title | Assigned | Status | Priority | Depends On | Reviewers |
+|----|-------|----------|--------|----------|------------|-----------|
+| TASK-301 | FAIR taxonomy expansion spec (TEF x Vulnerability) | @analyst | draft | high | -- | @frontend, @secarch |
+| TASK-302 | Sensitivity analysis spec (control-toggle + OAT) | @analyst | draft | high | -- | @frontend, @secarch |
+| TASK-303 | Loss exceedance curve spec | @analyst | draft | medium | -- | @frontend, @ux |
+| TASK-304 | Scenario comparison spec | @analyst | draft | medium | -- | @frontend, @ux |
+| TASK-305 | Phase 3 UI wireframes | @ux | approved | high | TASK-301..TASK-304 | @frontend, @analyst |
+
+## Phase 3: Advanced Analysis -- Wave B (Types + Engine)
+
+| ID | Title | Assigned | Status | Priority | Depends On | Reviewers |
+|----|-------|----------|--------|----------|------------|-----------|
+| TASK-310 | Extend FAIRInputs + add sensitivity types in shared | @frontend | pending | high | TASK-301, TASK-302, TASK-303 | @analyst, @secarch |
+| TASK-311 | Update evaluateTree() for TEF x Vulnerability | @frontend | pending | high | TASK-310 | @analyst, @secarch |
+| TASK-312 | Sensitivity engine (control-toggle + OAT sweep) | @frontend | pending | high | TASK-310 | @analyst, @secarch |
+| TASK-313 | Update simulation worker (samples + sensitivity messages) | @frontend | pending | high | TASK-311, TASK-312 | @secarch |
+
+## Phase 3: Advanced Analysis -- Wave C (UI + Visualization)
+
+| ID | Title | Assigned | Status | Priority | Depends On | Reviewers |
+|----|-------|----------|--------|----------|------------|-----------|
+| TASK-320 | TEF/Vulnerability toggle in property panel | @frontend | pending | high | TASK-311, TASK-305 | @ux, @analyst |
+| TASK-321 | Sensitivity tornado chart component | @frontend | pending | high | TASK-312, TASK-305 | @ux, @analyst |
+| TASK-322 | Loss exceedance curve component | @frontend | pending | medium | TASK-313, TASK-305 | @ux, @analyst |
+| TASK-323 | Results drawer: add LEC + sensitivity tabs | @frontend | pending | medium | TASK-321, TASK-322 | @ux |
+| TASK-324 | Scenario comparison picker + view | @frontend | pending | medium | TASK-313, TASK-305 | @ux, @analyst |
+
+## Phase 3: Advanced Analysis -- Wave D (Integration & Validation)
+
+| ID | Title | Assigned | Status | Priority | Depends On | Reviewers |
+|----|-------|----------|--------|----------|------------|-----------|
+| TASK-330 | Backward compatibility + migration validation | @analyst | pending | high | TASK-320..TASK-324 | @secarch, @test |
+| TASK-331 | Sensitivity analysis correctness validation | @analyst | pending | high | TASK-321 | @secarch, @test |
+| TASK-332 | Test coverage (unit + integration) | @test | pending | high | TASK-310..TASK-324 | @analyst, @secarch |
+| TASK-333 | Security review (Phase 3) | @secarch | pending | high | TASK-310..TASK-324 | @analyst, @test |

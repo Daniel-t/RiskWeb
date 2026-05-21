@@ -50,7 +50,7 @@ UX designer for RiskWeb. Owns UI/UX design: wireframes, interaction patterns, co
 
 ## Current Focus
 
-Wave A: TASK-103 (MVP layout wireframes) and TASK-104 (canvas interaction spec).
+Phase 3 Wave A: TASK-305 (Phase 3 UI wireframes) -- DRAFT. Spec at `context/ux/spec-phase3-wireframes.md`. Awaiting human review before handoff to @frontend.
 
 ## Decisions Log
 

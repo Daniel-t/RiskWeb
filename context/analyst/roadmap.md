@@ -81,18 +81,60 @@ See [mvp-plan.md](mvp-plan.md) for full task breakdown with dependencies, file o
 | E2.7 | @frontend | Update simulation engine to factor in applied controls |
 | E2.8 | @analyst | Validation of control impact on simulation outputs |
 
-## Phase 3: Advanced Analysis (Epics)
+## Phase 3: Advanced Analysis
 
-| Epic | Assigned | Description |
-|------|----------|-------------|
-| E3.1 | @analyst | Full FAIR taxonomy spec (TEF, Vulnerability, Contact Freq, Prob of Action, Primary/Secondary Loss) |
-| E3.2 | @analyst | Bayesian update spec (prior/posterior distribution updating with evidence) |
-| E3.3 | @analyst | Sensitivity analysis spec (tornado charts showing input influence on output) |
-| E3.4 | @frontend + @backend | Full FAIR decomposition in UI and engine |
-| E3.5 | @frontend | Loss exceedance curve visualization (complementary CDF) |
-| E3.6 | @frontend | Sensitivity analysis tornado chart |
-| E3.7 | @analyst + @ux | Scenario comparison spec and wireframes |
-| E3.8 | @frontend + @backend | Side-by-side scenario comparison view with diff calculations |
+**Scope:** Optional TEF x Vulnerability decomposition, sensitivity analysis (control-toggle + OAT), loss exceedance curves, cross-scenario comparison. Bayesian updates deferred.
+
+See specs: [spec-fair-taxonomy.md](spec-fair-taxonomy.md), [spec-sensitivity.md](spec-sensitivity.md), [spec-loss-exceedance.md](spec-loss-exceedance.md), [spec-scenario-comparison.md](spec-scenario-comparison.md).
+
+### Wave A -- Specs & Design
+
+| Epic | Assigned | Description | Spec |
+|------|----------|-------------|------|
+| E3.1 | @analyst | FAIR taxonomy expansion: optional TEF x Vulnerability at leaves | spec-fair-taxonomy.md |
+| E3.3 | @analyst | Sensitivity analysis: control-toggle tornado + OAT input sweep | spec-sensitivity.md |
+| E3.5 | @analyst | Loss exceedance curve (complementary CDF) | spec-loss-exceedance.md |
+| E3.7 | @analyst | Scenario comparison (2-4 saved scenarios) | spec-scenario-comparison.md |
+| E3.UX | @ux | UI wireframes for all Phase 3 features | wireframes-phase3.md |
+
+### Wave B -- Implementation (Types + Engine)
+
+| Task | Assigned | Depends On | Modifies |
+|------|----------|------------|----------|
+| Extend FAIRInputs with optional tef/vulnerability | @frontend | E3.1 | shared/src/index.ts |
+| Add SensitivityResult/SensitivityItem types | @frontend | E3.3 | shared/src/index.ts |
+| Add samples[] to SimulationResult | @frontend | E3.5 | shared/src/index.ts |
+| Update evaluateTree() for TEF x Vuln | @frontend | types | frontend/src/workers/fairEngine.ts |
+| Sensitivity engine (control toggle + OAT) | @frontend | E3.3 | frontend/src/workers/ |
+| Update simulation worker for samples + sensitivity messages | @frontend | above | frontend/src/workers/simulation.worker.ts |
+
+### Wave C -- Implementation (UI + Visualization)
+
+| Task | Assigned | Depends On | Modifies |
+|------|----------|------------|----------|
+| TEF/Vuln toggle in property panel | @frontend | Wave B types | frontend/src/components/PropertyPanel/ |
+| Tornado chart component | @frontend | Wave B engine | frontend/src/components/Simulation/ (new) |
+| Loss exceedance curve component | @frontend | E3.5 | frontend/src/components/Simulation/ (new) |
+| Results drawer: add LEC + sensitivity tabs | @frontend | above | frontend/src/components/Layout/ResultsDrawer.tsx |
+| Scenario comparison picker + view | @frontend | E3.7 | frontend/src/components/ (new) |
+
+### Wave D -- Integration & Validation
+
+| Task | Assigned | Depends On | Modifies |
+|------|----------|------------|----------|
+| Backward compatibility validation | @analyst | Wave B+C | context/analyst/ |
+| Sensitivity correctness validation | @analyst | Wave C | context/analyst/ |
+| Test coverage (unit + integration) | @test | Wave B+C | frontend/src/__tests__/ |
+| Security review | @secarch | Wave B+C | context/secarch/ |
+
+### Deferred from Phase 3
+
+| Feature | Reason |
+|---------|--------|
+| E3.2 Bayesian updates | Complexity; manual distribution entry suffices for now |
+| Per-node Loss Magnitude | Keep LM scenario-level; decomposition not needed yet |
+| Contact Freq / Prob of Action (TEF sub-decomposition) | Diminishing returns on analytical depth |
+| Primary/Secondary Loss decomposition | Requires per-node LM first |
 
 ## Phase 4: Polish & Export (Epics)
 
