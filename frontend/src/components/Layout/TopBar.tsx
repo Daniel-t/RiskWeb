@@ -9,6 +9,7 @@ interface TopBarProps {
   onExport: () => void;
   onImport: () => void;
   onAutoLayout: () => void;
+  onCompare: () => void;
   onRun: () => void;
   onCancel: () => void;
   canRun: boolean;
@@ -21,6 +22,7 @@ export function TopBar({
   onExport,
   onImport,
   onAutoLayout,
+  onCompare,
   onRun,
   onCancel,
   canRun,
@@ -79,6 +81,9 @@ export function TopBar({
           </button>
           <button className="btn btn-secondary" onClick={onAutoLayout}>
             Auto Layout
+          </button>
+          <button className="btn btn-secondary" onClick={onCompare} title="Compare scenarios">
+            Compare
           </button>
           {isRunning ? (
             <button className="btn btn-danger" onClick={onCancel}>

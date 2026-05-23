@@ -223,6 +223,20 @@ export function LeafNode({ id, data, selected }: NodeProps) {
       >
         {nodeData.label}
       </span>
+      {nodeData.fairInputs?.tef && nodeData.fairInputs?.vulnerability && (
+        <span
+          style={{
+            position: 'absolute',
+            bottom: 4,
+            right: 6,
+            fontSize: 9,
+            color: '#64748b',
+            fontStyle: 'italic',
+          }}
+        >
+          TEF × V
+        </span>
+      )}
       <Handle type="target" position={Position.Top} style={handleStyle} />
       {/* Leaf nodes do NOT have a source handle — they cannot be parents */}
     </div>

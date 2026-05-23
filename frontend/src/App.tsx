@@ -14,6 +14,10 @@ import { PropertyPanel } from './components/PropertyPanel/PropertyPanel';
 import { LoadScenarioModal } from './components/SaveLoad/LoadScenarioModal';
 import { ResultsSummary } from './components/Simulation/ResultsSummary';
 import { ALEHistogram } from './components/Simulation/ALEHistogram';
+import { ExceedancePanel } from './components/Simulation/ExceedancePanel';
+import { SensitivityPanel } from './components/Simulation/SensitivityPanel';
+import { ScenarioComparisonModal } from './components/Comparison/ScenarioComparisonModal';
+import { ComparisonView } from './components/Comparison/ComparisonView';
 import { ConfirmationDialog } from './components/shared/ConfirmationDialog';
 
 import { useTreeStore, rfToSharedNodes, rfToSharedEdges } from './store/treeStore';
@@ -33,6 +37,7 @@ function App() {
   const simulation = useSimulation();
 
   const [loadModalOpen, setLoadModalOpen] = useState(false);
+  const [comparisonModalOpen, setComparisonModalOpen] = useState(false);
   const [controlFormOpen, setControlFormOpen] = useState(false);
   const [editControlId, setEditControlId] = useState<string | null>(null);
   const [controlPrefill, setControlPrefill] = useState<
@@ -258,6 +263,7 @@ function App() {
             onExport={handleExport}
             onImport={handleImport}
             onAutoLayout={handleAutoLayout}
+            onCompare={() => setComparisonModalOpen(true)}
             onRun={handleRun}
             onCancel={simulation.cancel}
             canRun={canRun}
@@ -297,26 +303,36 @@ function App() {
           </Sidebar>
         }
         resultsDrawer={
-          <ResultsDrawer>
-            {simulationStore.results && (
-              <>
-                <ResultsSummary
-                  results={simulationStore.results}
-                  baselineResults={simulationStore.baselineResults}
-                  mode={simulationStore.activeTab}
-                />
-                {simulationStore.rawALEValues && simulationStore.rawALEValues.length > 0 && (
-                  <ALEHistogram
-                    rawALEValues={simulationStore.rawALEValues}
+          simulationStore.comparisonScenarios ? (
+            <ComparisonView />
+          ) : (
+            <ResultsDrawer>
+              {simulationStore.results && simulationStore.activeView === 'distribution' && (
+                <>
+                  <ResultsSummary
                     results={simulationStore.results}
-                    baselineRawALE={simulationStore.baselineRawALE}
                     baselineResults={simulationStore.baselineResults}
                     mode={simulationStore.activeTab}
                   />
-                )}
-              </>
-            )}
-          </ResultsDrawer>
+                  {simulationStore.rawALEValues && simulationStore.rawALEValues.length > 0 && (
+                    <ALEHistogram
+                      rawALEValues={simulationStore.rawALEValues}
+                      results={simulationStore.results}
+                      baselineRawALE={simulationStore.baselineRawALE}
+                      baselineResults={simulationStore.baselineResults}
+                      mode={simulationStore.activeTab}
+                    />
+                  )}
+                </>
+              )}
+              {simulationStore.results && simulationStore.activeView === 'exceedance' && (
+                <ExceedancePanel />
+              )}
+              {simulationStore.results && simulationStore.activeView === 'sensitivity' && (
+                <SensitivityPanel />
+              )}
+            </ResultsDrawer>
+          )
         }
       />
 
@@ -342,6 +358,15 @@ function App() {
         open={loadModalOpen}
         onClose={() => setLoadModalOpen(false)}
         onLoad={handleLoad}
+      />
+
+      <ScenarioComparisonModal
+        open={comparisonModalOpen}
+        onClose={() => setComparisonModalOpen(false)}
+        onCompare={(scenarios, refId) => {
+          simulationStore.setComparison(scenarios, refId);
+          setComparisonModalOpen(false);
+        }}
       />
 
       <ConfirmationDialog

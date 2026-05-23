@@ -100,7 +100,13 @@ export const storage: StoragePort = {
   async listScenarios(): Promise<ScenarioMeta[]> {
     const all = await txGetAll<Scenario>('scenarios');
     return all
-      .map((s) => ({ id: s.id, name: s.name, modified: s.metadata.modified }))
+      .map((s) => ({
+        id: s.id,
+        name: s.name,
+        modified: s.metadata.modified,
+        meanALE: s.results?.summary.mean,
+        p90: s.results?.summary.percentiles[0.9],
+      }))
       .sort((a, b) => b.modified.localeCompare(a.modified));
   },
 

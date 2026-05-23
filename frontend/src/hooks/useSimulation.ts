@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
-import type { Scenario, SimulationResult, Control } from '@shared/index';
+import type { Scenario, SimulationResult, SensitivityResult, Control } from '@shared/index';
 import { useSimulationStore } from '../store/simulationStore';
 
 interface WorkerProgressMessage {
@@ -21,17 +21,44 @@ interface WorkerErrorMessage {
   errors: string[];
 }
 
-type WorkerOutMessage = WorkerProgressMessage | WorkerCompleteMessage | WorkerErrorMessage;
+interface WorkerSensitivityProgressMessage {
+  type: 'sensitivityProgress';
+  percent: number;
+}
+
+interface WorkerSensitivityCompleteMessage {
+  type: 'sensitivityComplete';
+  result: SensitivityResult;
+}
+
+type WorkerOutMessage =
+  | WorkerProgressMessage
+  | WorkerCompleteMessage
+  | WorkerErrorMessage
+  | WorkerSensitivityProgressMessage
+  | WorkerSensitivityCompleteMessage;
 
 export function useSimulation() {
   const workerRef = useRef<Worker | null>(null);
   const { isRunning, progress, results, errors, rawALEValues, resultsOutdated } =
     useSimulationStore();
   const { setRunning, setProgress, setResults, setErrors } = useSimulationStore();
+  const {
+    sensitivityRunning,
+    sensitivityProgress,
+    setSensitivityResult,
+    setSensitivityRunning,
+    setSensitivityProgress,
+  } = useSimulationStore();
+
+  const createWorker = useCallback(() => {
+    return new Worker(new URL('../workers/simulation.worker.ts', import.meta.url), {
+      type: 'module',
+    });
+  }, []);
 
   const run = useCallback(
     (scenario: Scenario, controls: Control[] = []) => {
-      // Terminate existing worker
       if (workerRef.current) {
         workerRef.current.terminate();
       }
@@ -39,10 +66,7 @@ export function useSimulation() {
       setRunning(true);
       setProgress(0);
 
-      const worker = new Worker(new URL('../workers/simulation.worker.ts', import.meta.url), {
-        type: 'module',
-      });
-
+      const worker = createWorker();
       workerRef.current = worker;
 
       worker.onmessage = (e: MessageEvent<WorkerOutMessage>) => {
@@ -72,13 +96,48 @@ export function useSimulation() {
 
       worker.postMessage({ type: 'start', scenario, controls });
     },
-    [setRunning, setProgress, setResults, setErrors],
+    [createWorker, setRunning, setProgress, setResults, setErrors],
+  );
+
+  const runSensitivity = useCallback(
+    (
+      scenario: Scenario,
+      controls: Control[],
+      sensitivityType: 'controlToggle' | 'oatSweep',
+    ) => {
+      // Use a separate worker for sensitivity so it doesn't conflict
+      const worker = createWorker();
+      setSensitivityRunning(true);
+      setSensitivityProgress(0);
+
+      worker.onmessage = (e: MessageEvent<WorkerOutMessage>) => {
+        const msg = e.data;
+        switch (msg.type) {
+          case 'sensitivityProgress':
+            setSensitivityProgress(msg.percent);
+            break;
+          case 'sensitivityComplete':
+            setSensitivityResult(msg.result);
+            setSensitivityRunning(false);
+            worker.terminate();
+            break;
+        }
+      };
+
+      worker.onerror = () => {
+        setSensitivityRunning(false);
+        worker.terminate();
+      };
+
+      const seed = scenario.simulationConfig.seed ?? Math.floor(Math.random() * 2 ** 32);
+      worker.postMessage({ type: 'sensitivity', sensitivityType, scenario, controls, seed });
+    },
+    [createWorker, setSensitivityRunning, setSensitivityProgress, setSensitivityResult],
   );
 
   const cancel = useCallback(() => {
     if (workerRef.current) {
       workerRef.current.postMessage({ type: 'cancel' });
-      // Force terminate after 100ms if still running
       const w = workerRef.current;
       setTimeout(() => {
         w.terminate();
@@ -89,12 +148,23 @@ export function useSimulation() {
     }
   }, [setRunning, setProgress]);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       workerRef.current?.terminate();
     };
   }, []);
 
-  return { run, cancel, isRunning, progress, results, errors, rawALEValues, resultsOutdated };
+  return {
+    run,
+    runSensitivity,
+    cancel,
+    isRunning,
+    progress,
+    results,
+    errors,
+    rawALEValues,
+    resultsOutdated,
+    sensitivityRunning,
+    sensitivityProgress,
+  };
 }

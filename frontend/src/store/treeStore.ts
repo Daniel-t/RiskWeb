@@ -352,6 +352,13 @@ export const useTreeStore = create<TreeStore>((set, get) => ({
       if (node.data.nodeType === 'leaf') {
         if (!node.data.fairInputs) {
           errors.push(`Node '${node.data.label}' is missing FAIR inputs`);
+        } else if (node.data.fairInputs.tef && node.data.fairInputs.vulnerability) {
+          errors.push(...validateDistribution(node.data.fairInputs.tef, node.data.label, 'TEF'));
+          errors.push(
+            ...validateDistribution(node.data.fairInputs.vulnerability, node.data.label, 'Vulnerability'),
+          );
+        } else if (node.data.fairInputs.tef || node.data.fairInputs.vulnerability) {
+          errors.push(`Node '${node.data.label}': TEF and Vulnerability must both be defined`);
         } else {
           errors.push(...validateDistribution(node.data.fairInputs.lef, node.data.label, 'LEF'));
         }
@@ -378,6 +385,12 @@ export const useTreeStore = create<TreeStore>((set, get) => ({
 
     if (node.data.nodeType === 'leaf') {
       if (!node.data.fairInputs) return 'warning';
+      if (node.data.fairInputs.tef && node.data.fairInputs.vulnerability) {
+        const tefErrors = validateDistribution(node.data.fairInputs.tef, '', 'TEF');
+        const vulnErrors = validateDistribution(node.data.fairInputs.vulnerability, '', 'Vulnerability');
+        return tefErrors.length === 0 && vulnErrors.length === 0 ? 'valid' : 'warning';
+      }
+      if (node.data.fairInputs.tef || node.data.fairInputs.vulnerability) return 'warning';
       const lefErrors = validateDistribution(node.data.fairInputs.lef, '', 'LEF');
       return lefErrors.length === 0 ? 'valid' : 'warning';
     }

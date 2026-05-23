@@ -1,9 +1,9 @@
 import type { ChangeEvent } from 'react';
 import type { Node } from '@xyflow/react';
-import type { Distribution } from '@shared/index';
+import type { FAIRInputs } from '@shared/index';
 import type { TreeNodeData } from '../../store/treeStore';
 import { useTreeStore } from '../../store/treeStore';
-import { DistributionInput } from './DistributionInput';
+import { FrequencyModeSection } from './FrequencyModeSection';
 import { NodeControlsSection } from './NodeControlsSection';
 
 interface LeafPropertyPanelProps {
@@ -14,11 +14,13 @@ export function LeafPropertyPanel({ node }: LeafPropertyPanelProps) {
   const { updateNodeLabel, updateFairInputs } = useTreeStore();
 
   const fairInputs = node.data.fairInputs;
-  const hasInputs = !!fairInputs;
-  const isValid = hasInputs; // simplified — detailed validation in DistributionInput
+  const isDecomposed = !!(fairInputs?.tef && fairInputs?.vulnerability);
+  const isValid = isDecomposed
+    ? !!(fairInputs?.tef && fairInputs?.vulnerability)
+    : !!fairInputs?.lef;
 
-  const handleLefChange = (lef: Distribution) => {
-    updateFairInputs(node.id, { lef });
+  const handleFairInputsUpdate = (inputs: FAIRInputs) => {
+    updateFairInputs(node.id, inputs);
   };
 
   return (
@@ -34,11 +36,7 @@ export function LeafPropertyPanel({ node }: LeafPropertyPanelProps) {
         />
       </div>
 
-      <DistributionInput
-        label="LEF (events/yr)"
-        value={fairInputs?.lef}
-        onChange={handleLefChange}
-      />
+      <FrequencyModeSection fairInputs={fairInputs} onUpdate={handleFairInputsUpdate} />
 
       <div
         style={{

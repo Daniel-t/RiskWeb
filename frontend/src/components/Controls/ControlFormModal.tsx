@@ -25,7 +25,7 @@ export function ControlFormModal({ open, onClose, editControlId, prefill }: Cont
   const [d3fendTechniques, setD3fendTechniques] = useState<string[]>([]);
   const [techInput, setTechInput] = useState('');
   const [d3fInput, setD3fInput] = useState('');
-  const [source, setSource] = useState<'custom' | 'd3fend-mapped' | 'template'>('custom');
+  const [_source, setSource] = useState<'custom' | 'd3fend-mapped' | 'template'>('custom');
   const [saving, setSaving] = useState(false);
   const [nameError, setNameError] = useState('');
 

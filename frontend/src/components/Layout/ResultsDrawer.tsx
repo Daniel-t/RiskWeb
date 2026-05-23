@@ -1,23 +1,54 @@
 import type { ReactNode } from 'react';
 import { useScenarioStore } from '../../store/scenarioStore';
-import { useSimulationStore, type ComparisonTab } from '../../store/simulationStore';
+import {
+  useSimulationStore,
+  type ComparisonTab,
+  type ActiveView,
+} from '../../store/simulationStore';
 
 interface ResultsDrawerProps {
   children: ReactNode;
 }
 
-const tabs: { key: ComparisonTab; label: string }[] = [
+const primaryTabs: { key: ActiveView; label: string }[] = [
+  { key: 'distribution', label: 'Distribution' },
+  { key: 'exceedance', label: 'Exceedance' },
+  { key: 'sensitivity', label: 'Sensitivity' },
+];
+
+const secondaryTabs: { key: ComparisonTab; label: string }[] = [
   { key: 'controlled', label: 'Controlled' },
   { key: 'baseline', label: 'Baseline' },
   { key: 'compare', label: 'Compare' },
 ];
 
+const tabStyle = (active: boolean): React.CSSProperties => ({
+  padding: '4px 10px',
+  fontSize: 12,
+  fontWeight: active ? 600 : 400,
+  color: active ? 'var(--text-primary)' : 'var(--text-muted)',
+  background: active ? 'var(--bg-surface)' : 'transparent',
+  border: '1px solid',
+  borderColor: active ? 'var(--border-panel)' : 'transparent',
+  borderRadius: 4,
+  cursor: 'pointer',
+});
+
 export function ResultsDrawer({ children }: ResultsDrawerProps) {
   const { resultsDrawerExpanded, toggleResultsDrawer } = useScenarioStore();
-  const { results, hasControls, activeTab, setActiveTab } = useSimulationStore();
+  const {
+    results,
+    hasControls,
+    activeTab,
+    setActiveTab,
+    activeView,
+    setActiveView,
+    sensitivityResult,
+  } = useSimulationStore();
 
   const hasResults = results !== null;
   const chevron = resultsDrawerExpanded ? '\u25BC' : '\u25B2';
+  const showSecondary = activeView !== 'sensitivity' && hasControls;
 
   return (
     <div
@@ -31,7 +62,6 @@ export function ResultsDrawer({ children }: ResultsDrawerProps) {
         <button
           onClick={toggleResultsDrawer}
           style={{
-            flex: 1,
             height: 32,
             display: 'flex',
             alignItems: 'center',
@@ -43,39 +73,53 @@ export function ResultsDrawer({ children }: ResultsDrawerProps) {
             background: 'none',
             border: 'none',
             cursor: 'pointer',
+            padding: '0 12px',
           }}
         >
           <span>{chevron}</span>
           <span>Results</span>
           {hasResults && results.duration && (
             <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>
-              (last run: {Math.round(results.duration)}ms)
+              ({Math.round(results.duration)}ms)
             </span>
           )}
         </button>
 
-        {hasControls && resultsDrawerExpanded && (
-          <div style={{ display: 'flex', gap: 2, marginRight: 12 }}>
-            {tabs.map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                style={{
-                  padding: '4px 10px',
-                  fontSize: 12,
-                  fontWeight: activeTab === tab.key ? 600 : 400,
-                  color: activeTab === tab.key ? 'var(--text-primary)' : 'var(--text-muted)',
-                  background: activeTab === tab.key ? 'var(--bg-surface)' : 'transparent',
-                  border: '1px solid',
-                  borderColor: activeTab === tab.key ? 'var(--border-panel)' : 'transparent',
-                  borderRadius: 4,
-                  cursor: 'pointer',
-                }}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
+        {hasResults && resultsDrawerExpanded && (
+          <>
+            {/* Primary tabs (visualization type) */}
+            <div style={{ display: 'flex', gap: 2, marginLeft: 4 }}>
+              {primaryTabs.map((tab) => {
+                if (tab.key === 'sensitivity' && !sensitivityResult) return null;
+                return (
+                  <button
+                    key={tab.key}
+                    onClick={() => setActiveView(tab.key)}
+                    style={tabStyle(activeView === tab.key)}
+                  >
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div style={{ flex: 1 }} />
+
+            {/* Secondary tabs (dataset toggle) */}
+            {showSecondary && (
+              <div style={{ display: 'flex', gap: 2, marginRight: 12 }}>
+                {secondaryTabs.map((tab) => (
+                  <button
+                    key={tab.key}
+                    onClick={() => setActiveTab(tab.key)}
+                    style={tabStyle(activeTab === tab.key)}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
 

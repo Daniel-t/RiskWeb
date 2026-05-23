@@ -22,6 +22,8 @@ export type Distribution =
 
 export interface FAIRInputs {
   lef: Distribution;
+  tef?: Distribution;
+  vulnerability?: Distribution;
 }
 
 // Attack tree types
@@ -56,11 +58,14 @@ export interface SimulationResult {
   };
   perNode: Record<string, {
     meanLEF: number;
+    meanTEF?: number;
+    meanVulnerability?: number;
     percentiles: Record<number, number>;
   }>;
   iterations: number;
   duration: number;
   controlWarnings?: string[];
+  samples?: number[];
 }
 
 // Scenario types
@@ -85,6 +90,8 @@ export interface ScenarioMeta {
   id: string;
   name: string;
   modified: string;
+  meanALE?: number;
+  p90?: number;
 }
 
 // Control types
@@ -147,4 +154,33 @@ export interface TechniqueMapping {
   attackId: string;
   d3fendId: string;
   suggestedLefReduction?: Distribution;
+}
+
+// Sensitivity analysis types
+
+export interface SensitivityRequest {
+  type: 'controlToggle' | 'oatSweep';
+  scenario: Scenario;
+  controls: Control[];
+  seed: number;
+  oatIterations?: number;
+}
+
+export interface SensitivityItem {
+  id: string;
+  label: string;
+  category: 'control' | 'lef' | 'tef' | 'vulnerability' | 'lm' | 'lefReduction' | 'lmReduction';
+  aleLow: number;
+  aleHigh: number;
+  delta: number;
+  inputLow?: number;
+  inputHigh?: number;
+  inputExpected?: number;
+}
+
+export interface SensitivityResult {
+  type: 'controlToggle' | 'oatSweep';
+  baselineALE: number;
+  items: SensitivityItem[];
+  duration: number;
 }
