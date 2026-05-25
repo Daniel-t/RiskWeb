@@ -4,6 +4,7 @@ import type { Distribution, SimulationConfig } from '@shared/index';
 export interface ScenarioStore {
   id: string | null;
   name: string;
+  savedName: string;
   description: string;
   lossMagnitude: Distribution | undefined;
   simulationConfig: SimulationConfig;
@@ -41,6 +42,7 @@ const DEFAULT_SIM_CONFIG: SimulationConfig = {
 export const useScenarioStore = create<ScenarioStore>((set) => ({
   id: null,
   name: 'Untitled Scenario',
+  savedName: 'Untitled Scenario',
   description: '',
   lossMagnitude: undefined,
   simulationConfig: { ...DEFAULT_SIM_CONFIG },
@@ -58,7 +60,7 @@ export const useScenarioStore = create<ScenarioStore>((set) => ({
       simulationConfig: { ...state.simulationConfig, ...config },
       isDirty: true,
     })),
-  markClean: () => set({ isDirty: false }),
+  markClean: () => set((state) => ({ isDirty: false, savedName: state.name })),
   markDirty: () => set({ isDirty: true }),
   toggleLeftSidebar: () =>
     set((state) => ({ leftSidebarCollapsed: !state.leftSidebarCollapsed })),
@@ -71,6 +73,7 @@ export const useScenarioStore = create<ScenarioStore>((set) => ({
     set({
       id: null,
       name: 'Untitled Scenario',
+      savedName: 'Untitled Scenario',
       description: '',
       lossMagnitude: undefined,
       simulationConfig: { ...DEFAULT_SIM_CONFIG },
@@ -81,6 +84,7 @@ export const useScenarioStore = create<ScenarioStore>((set) => ({
     set({
       id: data.id,
       name: data.name,
+      savedName: data.name,
       description: data.description ?? '',
       lossMagnitude: data.lossMagnitude,
       simulationConfig: data.simulationConfig,

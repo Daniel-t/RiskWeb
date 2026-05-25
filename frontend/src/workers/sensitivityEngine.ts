@@ -46,7 +46,11 @@ export function getPercentile(dist: Distribution, p: number): number {
       const range = max - min;
       const alpha = 1 + (lambda * (mode - min)) / range;
       const beta = 1 + (lambda * (max - mode)) / range;
-      return min + betaQuantile(p, alpha, beta) * range;
+      const bq = betaQuantile(p, alpha, beta);
+      if (!isFinite(bq)) {
+        return min + p * range;
+      }
+      return min + bq * range;
     }
   }
 }
@@ -54,18 +58,18 @@ export function getPercentile(dist: Distribution, p: number): number {
 function betaQuantile(p: number, a: number, b: number): number {
   // Newton's method approximation for beta inverse CDF
   let x = (a - 1) / (a + b - 2);
-  if (x <= 0) x = 0.5;
-  if (x >= 1) x = 0.5;
+  if (!isFinite(x) || x <= 0 || x >= 1) x = 0.5;
 
   for (let i = 0; i < 50; i++) {
     const cdf = betaCDF(x, a, b);
     const pdf = betaPDF(x, a, b);
-    if (pdf < 1e-15) break;
+    if (!isFinite(cdf) || !isFinite(pdf) || pdf < 1e-15) break;
     const dx = (cdf - p) / pdf;
+    if (!isFinite(dx)) break;
     x = Math.max(1e-10, Math.min(1 - 1e-10, x - dx));
     if (Math.abs(dx) < 1e-12) break;
   }
-  return x;
+  return isFinite(x) ? x : p;
 }
 
 function betaPDF(x: number, a: number, b: number): number {
@@ -435,6 +439,10 @@ export function runOATSweep(
   const sweepable = descriptors.filter((d) => {
     const p10 = d.getP10();
     const p90 = d.getP90();
+    if (!isFinite(p10) || !isFinite(p90)) {
+      console.warn(`[OAT] Non-finite percentile for "${d.label}": p10=${p10}, p90=${p90}`);
+      return false;
+    }
     return Math.abs(p90 - p10) > 1e-12;
   });
 

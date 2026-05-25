@@ -103,7 +103,7 @@
 | TASK-302 | Sensitivity analysis spec (control-toggle + OAT) | @analyst | draft | high | -- | @frontend, @secarch |
 | TASK-303 | Loss exceedance curve spec | @analyst | draft | medium | -- | @frontend, @ux |
 | TASK-304 | Scenario comparison spec | @analyst | draft | medium | -- | @frontend, @ux |
-| TASK-305 | Phase 3 UI wireframes | @ux | approved | high | TASK-301..TASK-304 | @frontend, @analyst |
+    | TASK-305 | Phase 3 UI wireframes | @ux | approved | high | TASK-301..TASK-304 | @frontend, @analyst |
 
 ## Phase 3: Advanced Analysis -- Wave B (Types + Engine)
 
@@ -132,3 +132,16 @@
 | TASK-331 | Sensitivity analysis correctness validation | @analyst | pending | high | TASK-321 | @secarch, @test |
 | TASK-332 | Test coverage (unit + integration) | @test | pending | high | TASK-310..TASK-324 | @analyst, @secarch |
 | TASK-333 | Security review (Phase 3) | @secarch | pending | high | TASK-310..TASK-324 | @analyst, @test |
+
+## Defect Fixes
+
+| ID | Title | Assigned | Status | Priority | Depends On | Reviewers |
+|----|-------|----------|--------|----------|------------|-----------|
+| DEFECT-SAVE | Scenario save: rename overwrites original + import save error | @frontend | pending | high | -- | @analyst, @secarch, @test |
+
+## Feature Requests
+
+| ID | Title | Assigned | Status | Priority | Depends On | Reviewers |
+|----|-------|----------|--------|----------|------------|-----------|
+| FEAT-COMPARE-EXCEEDANCE | Resilient exceedance curves in scenario comparison | -- | draft | medium | TASK-324 | @frontend, @ux |
+| FEAT-CLIPBOARD-EXPORT | Copy/import scenario JSON via clipboard | -- | draft | low | -- | @frontend, @ux, @secarch |

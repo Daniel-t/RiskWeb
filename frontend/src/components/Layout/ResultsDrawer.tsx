@@ -43,7 +43,6 @@ export function ResultsDrawer({ children }: ResultsDrawerProps) {
     setActiveTab,
     activeView,
     setActiveView,
-    sensitivityResult,
   } = useSimulationStore();
 
   const hasResults = results !== null;
@@ -90,7 +89,6 @@ export function ResultsDrawer({ children }: ResultsDrawerProps) {
             {/* Primary tabs (visualization type) */}
             <div style={{ display: 'flex', gap: 2, marginLeft: 4 }}>
               {primaryTabs.map((tab) => {
-                if (tab.key === 'sensitivity' && !sensitivityResult) return null;
                 return (
                   <button
                     key={tab.key}

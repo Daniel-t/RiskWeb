@@ -12,6 +12,7 @@ import { ControlFormModal } from './components/Controls/ControlFormModal';
 import { CatalogBrowserModal } from './components/Controls/CatalogBrowserModal';
 import { PropertyPanel } from './components/PropertyPanel/PropertyPanel';
 import { LoadScenarioModal } from './components/SaveLoad/LoadScenarioModal';
+import { SaveConfirmDialog } from './components/SaveLoad/SaveConfirmDialog';
 import { ResultsSummary } from './components/Simulation/ResultsSummary';
 import { ALEHistogram } from './components/Simulation/ALEHistogram';
 import { ExceedancePanel } from './components/Simulation/ExceedancePanel';
@@ -44,6 +45,7 @@ function App() {
     Partial<Omit<import('@shared/index').Control, 'id' | 'metadata'>> | undefined
   >(undefined);
   const [catalogOpen, setCatalogOpen] = useState(false);
+  const [saveConfirmOpen, setSaveConfirmOpen] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<{
     title: string;
     message: string;
@@ -96,20 +98,42 @@ function App() {
     }
   }, [scenarioStore, treeStore, simulationStore, controlStore]);
 
-  const handleSave = useCallback(async () => {
-    const data = buildScenario();
-    try {
-      if (scenarioStore.id) {
-        await updateScenario(scenarioStore.id, data);
-      } else {
-        const saved = await createScenario(data);
-        scenarioStore.setId(saved.id);
+  const doSave = useCallback(
+    async (asNew: boolean) => {
+      const data = buildScenario();
+      try {
+        if (scenarioStore.id && !asNew) {
+          await updateScenario(scenarioStore.id, data);
+        } else {
+          const saved = await createScenario(data);
+          scenarioStore.setId(saved.id);
+        }
+        scenarioStore.markClean();
+      } catch (e) {
+        alert(e instanceof Error ? e.message : 'Save failed');
       }
-      scenarioStore.markClean();
-    } catch (e) {
-      alert(e instanceof Error ? e.message : 'Save failed');
+    },
+    [buildScenario, scenarioStore],
+  );
+
+  const handleSave = useCallback(async () => {
+    if (scenarioStore.id && scenarioStore.name !== scenarioStore.savedName) {
+      setSaveConfirmOpen(true);
+      return;
     }
-  }, [buildScenario, scenarioStore]);
+    doSave(false);
+  }, [scenarioStore, doSave]);
+
+  const handleSaveAsNew = useCallback(() => {
+    setSaveConfirmOpen(false);
+    scenarioStore.setId(null);
+    doSave(true);
+  }, [scenarioStore, doSave]);
+
+  const handleOverwrite = useCallback(() => {
+    setSaveConfirmOpen(false);
+    doSave(false);
+  }, [doSave]);
 
   const handleLoad = useCallback(
     async (id: string) => {
@@ -352,6 +376,15 @@ function App() {
           setControlPrefill(prefill);
           setControlFormOpen(true);
         }}
+      />
+
+      <SaveConfirmDialog
+        open={saveConfirmOpen}
+        oldName={scenarioStore.savedName}
+        newName={scenarioStore.name}
+        onSaveAsNew={handleSaveAsNew}
+        onOverwrite={handleOverwrite}
+        onCancel={() => setSaveConfirmOpen(false)}
       />
 
       <LoadScenarioModal

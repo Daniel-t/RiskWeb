@@ -22,18 +22,23 @@ export function createScenario(data: Omit<Scenario, 'id' | 'metadata'>): Promise
   return storage.saveScenario(scenario);
 }
 
-export function updateScenario(
+export async function updateScenario(
   id: string,
   data: Omit<Scenario, 'id' | 'metadata'>,
 ): Promise<Scenario> {
-  return storage.getScenario(id).then((existing) => {
-    const scenario: Scenario = {
-      ...data,
-      id,
-      metadata: { created: existing.metadata.created, modified: new Date().toISOString() },
-    };
-    return storage.saveScenario(scenario);
-  });
+  let created: string;
+  try {
+    const existing = await storage.getScenario(id);
+    created = existing.metadata.created;
+  } catch {
+    created = new Date().toISOString();
+  }
+  const scenario: Scenario = {
+    ...data,
+    id,
+    metadata: { created, modified: new Date().toISOString() },
+  };
+  return storage.saveScenario(scenario);
 }
 
 export function deleteScenario(id: string): Promise<void> {
