@@ -35,7 +35,15 @@ interface MetricRowProps {
 function MetricRow({ label, sublabel, value, baselineValue, delta, deltaColor }: MetricRowProps) {
   return (
     <div style={{ marginBottom: 16 }}>
-      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+      <div
+        style={{
+          fontSize: 11,
+          fontWeight: 600,
+          color: 'var(--text-muted)',
+          textTransform: 'uppercase',
+          letterSpacing: 0.5,
+        }}
+      >
         {label}
       </div>
       {baselineValue ? (
@@ -46,14 +54,25 @@ function MetricRow({ label, sublabel, value, baselineValue, delta, deltaColor }:
           </div>
           <div>
             <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Baseline</div>
-            <div style={{ fontSize: 14, fontWeight: 500, fontFamily: 'monospace', color: 'var(--text-muted)' }}>{baselineValue}</div>
+            <div
+              style={{
+                fontSize: 14,
+                fontWeight: 500,
+                fontFamily: 'monospace',
+                color: 'var(--text-muted)',
+              }}
+            >
+              {baselineValue}
+            </div>
           </div>
         </div>
       ) : (
         <div style={{ fontSize: 20, fontWeight: 700, fontFamily: 'monospace' }}>{value}</div>
       )}
       {sublabel && (
-        <div style={{ fontSize: 11, color: 'var(--text-muted)', fontStyle: 'italic' }}>{sublabel}</div>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', fontStyle: 'italic' }}>
+          {sublabel}
+        </div>
       )}
       {delta && (
         <div style={{ fontSize: 11, color: deltaColor ?? 'var(--text-muted)' }}>{delta}</div>
@@ -76,7 +95,9 @@ export function VaRReadouts({ samples, baselineSamples, mode }: VaRReadoutsProps
 
   return (
     <div style={{ minWidth: 160, maxWidth: 200 }}>
-      <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 16, color: 'var(--text-primary)' }}>
+      <div
+        style={{ fontSize: 12, fontWeight: 600, marginBottom: 16, color: 'var(--text-primary)' }}
+      >
         Key Risk Metrics
       </div>
 
@@ -102,7 +123,14 @@ export function VaRReadouts({ samples, baselineSamples, mode }: VaRReadoutsProps
         baselineValue={bMedian !== undefined ? formatCurrency(bMedian) : undefined}
       />
 
-      <div style={{ fontSize: 11, color: 'var(--text-muted)', borderTop: '1px solid var(--border-panel)', paddingTop: 8 }}>
+      <div
+        style={{
+          fontSize: 11,
+          color: 'var(--text-muted)',
+          borderTop: '1px solid var(--border-panel)',
+          paddingTop: 8,
+        }}
+      >
         {samples.length.toLocaleString()} samples
       </div>
     </div>

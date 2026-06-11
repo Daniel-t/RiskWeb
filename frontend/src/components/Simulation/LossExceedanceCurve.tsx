@@ -57,8 +57,15 @@ export function LossExceedanceCurve({ samples, baselineSamples, mode }: LossExce
     // Auto log scale when range > 1000x
     const useLog = xMax / Math.max(xMin || 1, 1) > 1000;
     const x = useLog
-      ? d3.scaleLog().domain([Math.max(1, xMin), xMax]).range([0, innerWidth]).clamp(true)
-      : d3.scaleLinear().domain([xMin, xMax * 1.05]).range([0, innerWidth]);
+      ? d3
+          .scaleLog()
+          .domain([Math.max(1, xMin), xMax])
+          .range([0, innerWidth])
+          .clamp(true)
+      : d3
+          .scaleLinear()
+          .domain([xMin, xMax * 1.05])
+          .range([0, innerWidth]);
 
     const y = d3.scaleLinear().domain([0, 1]).range([innerHeight, 0]);
 
@@ -72,7 +79,7 @@ export function LossExceedanceCurve({ samples, baselineSamples, mode }: LossExce
       .attr('x2', innerWidth)
       .attr('y1', (d) => y(d))
       .attr('y2', (d) => y(d))
-      .attr('stroke', '#f1f5f9')
+      .style('stroke', 'var(--chart-grid)')
       .attr('stroke-width', 1);
 
     // VaR reference lines (90% and 95%)
@@ -83,7 +90,7 @@ export function LossExceedanceCurve({ samples, baselineSamples, mode }: LossExce
         .attr('x2', innerWidth)
         .attr('y1', yPos)
         .attr('y2', yPos)
-        .attr('stroke', '#cbd5e1')
+        .style('stroke', 'var(--chart-var-line)')
         .attr('stroke-dasharray', '3,3')
         .attr('stroke-width', 1);
 
@@ -92,7 +99,7 @@ export function LossExceedanceCurve({ samples, baselineSamples, mode }: LossExce
         .attr('y', yPos - 4)
         .attr('text-anchor', 'end')
         .attr('font-size', 9)
-        .attr('fill', '#94a3b8')
+        .style('fill', 'var(--text-muted)')
         .text(conf === 0.1 ? 'VaR 90%' : 'VaR 95%');
     }
 
@@ -108,7 +115,7 @@ export function LossExceedanceCurve({ samples, baselineSamples, mode }: LossExce
         .datum(baselineData)
         .attr('d', line)
         .attr('fill', 'none')
-        .attr('stroke', '#94a3b8')
+        .style('stroke', 'var(--chart-bar-baseline)')
         .attr('stroke-width', 2)
         .attr('stroke-dasharray', '6,3')
         .attr('opacity', 0.6);
@@ -119,7 +126,7 @@ export function LossExceedanceCurve({ samples, baselineSamples, mode }: LossExce
       .datum(controlledData)
       .attr('d', line)
       .attr('fill', 'none')
-      .attr('stroke', '#3b82f6')
+      .style('stroke', 'var(--chart-line)')
       .attr('stroke-width', 2);
 
     // Area fill under controlled curve
@@ -133,7 +140,7 @@ export function LossExceedanceCurve({ samples, baselineSamples, mode }: LossExce
     g.append('path')
       .datum(controlledData)
       .attr('d', area)
-      .attr('fill', '#3b82f6')
+      .style('fill', 'var(--chart-line)')
       .attr('opacity', 0.08);
 
     // Axes
@@ -155,12 +162,20 @@ export function LossExceedanceCurve({ samples, baselineSamples, mode }: LossExce
 
     // Hover crosshair
     const hoverGroup = g.append('g').style('display', 'none');
-    const hoverLineV = hoverGroup.append('line').attr('stroke', '#64748b').attr('stroke-width', 1).attr('stroke-dasharray', '3,2');
-    const hoverLineH = hoverGroup.append('line').attr('stroke', '#64748b').attr('stroke-width', 1).attr('stroke-dasharray', '3,2');
+    const hoverLineV = hoverGroup
+      .append('line')
+      .style('stroke', 'var(--chart-hover)')
+      .attr('stroke-width', 1)
+      .attr('stroke-dasharray', '3,2');
+    const hoverLineH = hoverGroup
+      .append('line')
+      .style('stroke', 'var(--chart-hover)')
+      .attr('stroke-width', 1)
+      .attr('stroke-dasharray', '3,2');
     const tooltip = hoverGroup
       .append('text')
       .attr('font-size', 11)
-      .attr('fill', '#334155')
+      .style('fill', 'var(--text-primary)')
       .attr('font-weight', 500);
 
     const bisect = d3.bisector<[number, number], number>((d) => d[0]).left;
@@ -196,10 +211,37 @@ export function LossExceedanceCurve({ samples, baselineSamples, mode }: LossExce
     // Legend
     if (baselineData) {
       const legend = g.append('g').attr('transform', `translate(${innerWidth - 120}, 4)`);
-      legend.append('line').attr('x1', 0).attr('x2', 20).attr('y1', 0).attr('y2', 0).attr('stroke', '#94a3b8').attr('stroke-dasharray', '6,3').attr('stroke-width', 2);
-      legend.append('text').attr('x', 24).attr('y', 4).attr('font-size', 10).attr('fill', '#64748b').text('Baseline');
-      legend.append('line').attr('x1', 0).attr('x2', 20).attr('y1', 16).attr('y2', 16).attr('stroke', '#3b82f6').attr('stroke-width', 2);
-      legend.append('text').attr('x', 24).attr('y', 20).attr('font-size', 10).attr('fill', '#64748b').text('Controlled');
+      legend
+        .append('line')
+        .attr('x1', 0)
+        .attr('x2', 20)
+        .attr('y1', 0)
+        .attr('y2', 0)
+        .style('stroke', 'var(--chart-bar-baseline)')
+        .attr('stroke-dasharray', '6,3')
+        .attr('stroke-width', 2);
+      legend
+        .append('text')
+        .attr('x', 24)
+        .attr('y', 4)
+        .attr('font-size', 10)
+        .style('fill', 'var(--chart-axis-text)')
+        .text('Baseline');
+      legend
+        .append('line')
+        .attr('x1', 0)
+        .attr('x2', 20)
+        .attr('y1', 16)
+        .attr('y2', 16)
+        .style('stroke', 'var(--chart-line)')
+        .attr('stroke-width', 2);
+      legend
+        .append('text')
+        .attr('x', 24)
+        .attr('y', 20)
+        .attr('font-size', 10)
+        .style('fill', 'var(--chart-axis-text)')
+        .text('Controlled');
     }
   }, [samples, baselineSamples, mode]);
 
@@ -214,7 +256,16 @@ export function LossExceedanceCurve({ samples, baselineSamples, mode }: LossExce
 
   if (samples.length === 0) {
     return (
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
+      <div
+        style={{
+          flex: 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'var(--text-muted)',
+          fontSize: 13,
+        }}
+      >
         No sample data available for exceedance curve.
       </div>
     );

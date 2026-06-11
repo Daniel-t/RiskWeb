@@ -15,7 +15,11 @@ const metrics: { key: string; label: string; getValue: (s: Scenario) => number |
   { key: 'p90', label: 'P90', getValue: (s) => s.results?.summary.percentiles[0.9] },
 ];
 
-export function ComparisonStatsTable({ scenarios, referenceId, colors }: ComparisonStatsTableProps) {
+export function ComparisonStatsTable({
+  scenarios,
+  referenceId,
+  colors,
+}: ComparisonStatsTableProps) {
   const refScenario = scenarios.find((s) => s.id === referenceId) ?? scenarios[0];
 
   return (
@@ -25,7 +29,15 @@ export function ComparisonStatsTable({ scenarios, referenceId, colors }: Compari
           <tr style={{ borderBottom: '2px solid var(--border-panel)' }}>
             <th style={{ padding: '6px 8px', textAlign: 'left', fontWeight: 600 }}>Metric</th>
             {scenarios.map((s, i) => (
-              <th key={s.id} style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 600, color: colors[i] }}>
+              <th
+                key={s.id}
+                style={{
+                  padding: '6px 8px',
+                  textAlign: 'right',
+                  fontWeight: 600,
+                  color: colors[i],
+                }}
+              >
                 {s.name.length > 12 ? s.name.slice(0, 10) + '..' : s.name}
               </th>
             ))}
@@ -47,11 +59,19 @@ export function ComparisonStatsTable({ scenarios, referenceId, colors }: Compari
                     const absDelta = val - refVal;
                     const pctDelta = (absDelta / refVal) * 100;
                     deltaStr = `${absDelta >= 0 ? '+' : ''}${formatCurrency(absDelta)} (${pctDelta >= 0 ? '+' : ''}${pctDelta.toFixed(0)}%)`;
-                    deltaColor = absDelta < 0 ? 'var(--success)' : absDelta > 0 ? 'var(--danger)' : 'var(--text-muted)';
+                    deltaColor =
+                      absDelta < 0
+                        ? 'var(--success)'
+                        : absDelta > 0
+                          ? 'var(--danger)'
+                          : 'var(--text-muted)';
                   }
 
                   return (
-                    <td key={s.id} style={{ padding: '6px 8px', textAlign: 'right', fontFamily: 'monospace' }}>
+                    <td
+                      key={s.id}
+                      style={{ padding: '6px 8px', textAlign: 'right', fontFamily: 'monospace' }}
+                    >
                       <div>{val !== undefined ? formatCurrency(val) : '--'}</div>
                       {deltaStr && (
                         <div style={{ fontSize: 10, color: deltaColor }}>{deltaStr}</div>

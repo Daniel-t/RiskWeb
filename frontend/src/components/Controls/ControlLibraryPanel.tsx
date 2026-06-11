@@ -9,7 +9,11 @@ interface ControlLibraryPanelProps {
   onOpenCatalog: () => void;
 }
 
-export function ControlLibraryPanel({ onCreateNew, onEditControl, onOpenCatalog }: ControlLibraryPanelProps) {
+export function ControlLibraryPanel({
+  onCreateNew,
+  onEditControl,
+  onOpenCatalog,
+}: ControlLibraryPanelProps) {
   const { controls, isLoading, loadControls } = useControlStore();
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<ControlCategory | 'all'>('all');
@@ -74,7 +78,11 @@ export function ControlLibraryPanel({ onCreateNew, onEditControl, onOpenCatalog 
         <button className="btn btn-primary" style={{ flex: 1, fontSize: 12 }} onClick={onCreateNew}>
           + New
         </button>
-        <button className="btn btn-secondary" style={{ flex: 1, fontSize: 12 }} onClick={onOpenCatalog}>
+        <button
+          className="btn btn-secondary"
+          style={{ flex: 1, fontSize: 12 }}
+          onClick={onOpenCatalog}
+        >
           Catalog
         </button>
       </div>
@@ -103,11 +111,7 @@ export function ControlLibraryPanel({ onCreateNew, onEditControl, onOpenCatalog 
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                 {grouped[cat].map((c) => (
-                  <ControlCard
-                    key={c.id}
-                    control={c}
-                    onDoubleClick={() => onEditControl(c.id)}
-                  />
+                  <ControlCard key={c.id} control={c} onDoubleClick={() => onEditControl(c.id)} />
                 ))}
               </div>
             </div>

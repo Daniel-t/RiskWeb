@@ -5,9 +5,8 @@ import { LossExceedanceCurve } from './LossExceedanceCurve';
 export function ExceedancePanel() {
   const { results, baselineResults, activeTab } = useSimulationStore();
 
-  const samples = activeTab === 'baseline'
-    ? (baselineResults?.samples ?? [])
-    : (results?.samples ?? []);
+  const samples =
+    activeTab === 'baseline' ? (baselineResults?.samples ?? []) : (results?.samples ?? []);
 
   const baselineSamples = baselineResults?.samples ?? null;
 

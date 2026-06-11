@@ -72,9 +72,9 @@ export function ContextMenu({
         position: 'fixed',
         left: menu.x,
         top: menu.y,
-        background: 'white',
+        background: 'var(--bg-popover)',
         borderRadius: 6,
-        boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+        boxShadow: '0 4px 16px var(--bg-overlay)',
         border: '1px solid var(--border-panel)',
         padding: '4px 0',
         zIndex: 100,
@@ -100,7 +100,7 @@ export function ContextMenu({
             cursor: 'pointer',
           }}
           onMouseEnter={(e) => {
-            (e.target as HTMLElement).style.background = '#f1f5f9';
+            (e.target as HTMLElement).style.background = 'var(--bg-surface-hover)';
           }}
           onMouseLeave={(e) => {
             (e.target as HTMLElement).style.background = 'none';

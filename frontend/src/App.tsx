@@ -27,7 +27,12 @@ import { useSimulationStore } from './store/simulationStore';
 import { useControlStore } from './store/controlStore';
 import { useSimulation } from './hooks/useSimulation';
 import { getScenario, createScenario, updateScenario } from './services/api';
-import { exportScenarioToFile, importScenarioFromFile } from './services/fileIO';
+import {
+  exportScenarioToFile,
+  importScenarioFromFile,
+  buildExportPayload,
+  parseAndValidateImport,
+} from './services/fileIO';
 import { storage } from './services/storage';
 
 function App() {
@@ -271,6 +276,84 @@ function App() {
     }
   }, [treeStore, scenarioStore, simulationStore, controlStore]);
 
+  const handleCopyJson = useCallback(async () => {
+    const data = buildScenario();
+    const scenario: Scenario = {
+      id: scenarioStore.id ?? crypto.randomUUID(),
+      ...data,
+      metadata: {
+        created: new Date().toISOString(),
+        modified: new Date().toISOString(),
+      },
+    };
+    const payload = buildExportPayload(scenario, (id) => controlStore.controlCache.get(id));
+    const json = JSON.stringify(payload, null, 2);
+    try {
+      await navigator.clipboard.writeText(json);
+      alert('Scenario JSON copied to clipboard');
+    } catch {
+      alert('Failed to copy — clipboard access denied');
+    }
+  }, [buildScenario, scenarioStore, controlStore]);
+
+  const handleImportFromClipboard = useCallback(async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (!text) {
+        alert('Clipboard does not contain valid scenario JSON');
+        return;
+      }
+      const result = parseAndValidateImport(text);
+
+      let added = 0;
+      let skipped = 0;
+      for (const control of result.importedControls) {
+        try {
+          await storage.getControl(control.id);
+          skipped++;
+        } catch {
+          await storage.saveControl(control);
+          added++;
+        }
+      }
+      if (added > 0) {
+        await controlStore.loadControls();
+      }
+
+      treeStore.loadTree(result.scenario.nodes, result.scenario.edges);
+      scenarioStore.loadScenario({
+        id: result.scenario.id,
+        name: result.scenario.name,
+        description: result.scenario.description,
+        lossMagnitude: result.scenario.lossMagnitude,
+        simulationConfig: result.scenario.simulationConfig,
+      });
+      controlStore.loadAssignments(result.scenario.controlAssignments ?? []);
+      if (result.scenario.results) {
+        simulationStore.setResults(result.scenario.results, []);
+      } else {
+        simulationStore.clear();
+      }
+      setLoadModalOpen(false);
+
+      const messages: string[] = [];
+      if (added > 0) messages.push(`Imported ${added} control(s)`);
+      if (skipped > 0) messages.push(`${skipped} control(s) already existed, skipped`);
+      if (result.warnings.length > 0) messages.push(...result.warnings);
+      if (messages.length > 0) {
+        alert('Import notes:\n\n' + messages.join('\n'));
+      }
+    } catch (e) {
+      if (e instanceof DOMException && e.name === 'NotAllowedError') {
+        alert('Clipboard access denied — please grant permission and try again');
+      } else if (e instanceof SyntaxError) {
+        alert('Clipboard does not contain valid scenario JSON');
+      } else {
+        alert(e instanceof Error ? e.message : 'Failed to import from clipboard');
+      }
+    }
+  }, [treeStore, scenarioStore, simulationStore, controlStore]);
+
   const handleAutoLayout = useCallback(() => {
     treeStore.autoLayout();
     scenarioStore.markDirty();
@@ -286,6 +369,7 @@ function App() {
             onLoad={() => setLoadModalOpen(true)}
             onExport={handleExport}
             onImport={handleImport}
+            onCopyJson={handleCopyJson}
             onAutoLayout={handleAutoLayout}
             onCompare={() => setComparisonModalOpen(true)}
             onRun={handleRun}
@@ -391,6 +475,7 @@ function App() {
         open={loadModalOpen}
         onClose={() => setLoadModalOpen(false)}
         onLoad={handleLoad}
+        onImportFromClipboard={handleImportFromClipboard}
       />
 
       <ScenarioComparisonModal
@@ -418,12 +503,12 @@ function App() {
             position: 'fixed',
             bottom: 16,
             right: 16,
-            background: 'white',
+            background: 'var(--bg-popover)',
             border: '1px solid var(--danger)',
             borderRadius: 8,
             padding: 16,
             maxWidth: 400,
-            boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+            boxShadow: '0 4px 16px var(--bg-overlay)',
             zIndex: 150,
           }}
         >

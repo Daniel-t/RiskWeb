@@ -136,16 +136,72 @@ See specs: [spec-fair-taxonomy.md](spec-fair-taxonomy.md), [spec-sensitivity.md]
 | Contact Freq / Prob of Action (TEF sub-decomposition) | Diminishing returns on analytical depth |
 | Primary/Secondary Loss decomposition | Requires per-node LM first |
 
-## Phase 4: Polish & Export (Epics)
+## Phase 4: Polish, Export & Fixes
+
+**Scope:** Theming (light/dark), PDF reports, CSV export, clipboard copy/paste, resilient exceedance curves, performance optimization, comprehensive security review. Defect fixes verified (already implemented). Bayesian updates explicitly deferred.
 
 | Epic | Assigned | Description |
 |------|----------|-------------|
 | E4.1 | @ux | Design system and theming (light/dark mode) |
-| E4.2 | @frontend | PDF report generation (tree visualization + inputs + results) |
-| E4.3 | @backend | JSON model download/upload, CSV results export |
-| E4.4 | @frontend | Performance optimization (virtualization for large trees, worker pool) |
+| E4.2 | @frontend | PDF report generation (client-side jsPDF + SVG capture) |
+| E4.3 | @frontend | CSV results export + clipboard copy/paste (client-side) |
+| E4.4 | @frontend | Performance optimization (React.memo, worker pool, lazy loading) |
 | E4.5 | @secarch | Comprehensive security review of full application |
-| E4.6 | @backend | Database persistence migration path documentation |
+| E4.R | @analyst | Resilient exceedance curves + defect verification |
+
+### Wave A -- Specs, Design & Verification
+
+| Task | Assigned | Spec |
+|------|----------|------|
+| TASK-401: Verify defect/security fixes | @test | (verification, no spec) |
+| TASK-402: Design system & theming spec | @ux | context/ux/spec-design-system.md |
+| TASK-403: PDF report generation spec | @analyst | spec-pdf-report.md |
+| TASK-404: CSV results export spec | @analyst | spec-csv-export.md |
+| TASK-405: Clipboard export/import spec | @analyst | spec-clipboard-export.md |
+| TASK-406: Performance optimization spec | @analyst | spec-performance.md |
+| TASK-407: Resilient exceedance curves spec | @analyst | spec-resilient-exceedance.md |
+
+### Wave B -- Core Implementation
+
+| Task | Assigned | Depends On | Modifies |
+|------|----------|------------|----------|
+| TASK-410: Worker timeout verification | @frontend | -- | simulation.worker.ts |
+| TASK-411: Extract shared fileIO helpers | @frontend | TASK-405 | fileIO.ts |
+| TASK-412: CSV export engine | @frontend | TASK-404 | csvExport.ts (new) |
+| TASK-413: PDF report engine | @frontend | TASK-403 | pdfReport.ts (new) |
+| TASK-414: hasSamples flag on ScenarioMeta | @frontend | TASK-407 | shared/src/index.ts, storage.ts |
+| TASK-415: CSS tokens + theme infrastructure | @frontend | TASK-402 | index.css |
+
+### Wave C -- UI Implementation
+
+| Task | Assigned | Depends On | Modifies |
+|------|----------|------------|----------|
+| TASK-420: Resilient exceedance curves UI | @frontend | TASK-414 | ComparisonExceedance.tsx |
+| TASK-421: Clipboard copy/import UI | @frontend | TASK-411 | TopBar.tsx, LoadScenarioModal.tsx |
+| TASK-422: CSV export UI | @frontend | TASK-412 | ResultsDrawer.tsx |
+| TASK-423: PDF report UI | @frontend | TASK-413 | TopBar.tsx |
+| TASK-424: Light/dark theme toggle | @frontend | TASK-415 | TopBar.tsx |
+| TASK-425: Design system token migration | @frontend | TASK-415 | multiple components |
+| TASK-426: React Flow virtualization | @frontend | TASK-406 | AttackTreeCanvas.tsx |
+| TASK-427: Worker pool for sensitivity | @frontend | TASK-406 | workers/ |
+
+### Wave D -- Validation & Security Review
+
+| Task | Assigned | Depends On |
+|------|----------|------------|
+| TASK-430: End-to-end validation | @analyst | Wave C |
+| TASK-431: Comprehensive security review | @secarch | Wave C |
+| TASK-432: Test coverage | @test | Wave C |
+| TASK-433: Theme accessibility audit | @ux | TASK-424, TASK-425 |
+
+### Deferred from Phase 4
+
+| Feature | Reason |
+|---------|--------|
+| Bayesian updates (E3.2) | Complexity; manual distribution entry suffices |
+| Per-node Loss Magnitude | Keep LM scenario-level; decomposition not needed yet |
+| Multi-user collaboration | Requires backend reintroduction |
+| Server-side PDF generation | Client-side jsPDF sufficient |
 
 ---
 

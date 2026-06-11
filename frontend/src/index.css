@@ -1,22 +1,144 @@
 :root {
+  /* Background */
   --bg-app: #ffffff;
   --bg-canvas: #f8f9fa;
   --bg-sidebar: #ffffff;
   --bg-surface: #f1f5f9;
+  --bg-surface-hover: #e2e8f0;
+  --bg-popover: #ffffff;
+  --bg-overlay: rgba(0, 0, 0, 0.4);
+  --bg-drop-highlight: #eff6ff;
+
+  /* Text */
+  --text-primary: #1e293b;
+  --text-muted: #94a3b8;
+  --text-on-primary: #ffffff;
+  --text-popover: #334155;
+
+  /* Border */
   --border-panel: #e2e8f0;
+  --border-focus: var(--primary);
+
+  /* Semantic */
   --primary: #3b82f6;
   --primary-hover: #2563eb;
   --danger: #ef4444;
   --danger-hover: #dc2626;
   --warning: #f59e0b;
   --success: #22c55e;
-  --text-primary: #1e293b;
-  --text-muted: #94a3b8;
+
+  /* Node */
   --node-leaf: #ffffff;
   --node-and: #dbeafe;
   --node-or: #ffedd5;
+  --node-and-border: #93c5fd;
+  --node-or-border: #fdba74;
+  --node-and-text: #3b82f6;
+  --node-or-text: #ea580c;
+  --node-handle: #94a3b8;
+  --node-handle-border: #ffffff;
+  --canvas-dots: #d0d5dd;
+
+  /* Control badges */
+  --badge-preventive-bg: #dbeafe;
+  --badge-preventive-text: #1d4ed8;
+  --badge-detective-bg: #fef3c7;
+  --badge-detective-text: #92400e;
+  --badge-corrective-bg: #dcfce7;
+  --badge-corrective-text: #166534;
+  --badge-mixed-bg: #f1f5f9;
+  --badge-mixed-text: #64748b;
+
+  /* Buttons */
+  --btn-secondary-bg: #f1f5f9;
+  --btn-secondary-hover: #e2e8f0;
+
+  /* Charts */
+  --chart-grid: #e2e8f0;
+  --chart-axis-text: #64748b;
+  --chart-bar-primary: #3b82f6;
+  --chart-bar-baseline: #94a3b8;
+  --chart-line: #3b82f6;
+  --chart-ci-fill: rgba(59, 130, 246, 0.15);
+  --chart-var-line: #cbd5e1;
+  --chart-hover: #64748b;
+
+  /* Selection */
+  --selection-ring: rgba(59, 130, 246, 0.3);
+  --drop-ring: rgba(59, 130, 246, 0.15);
+
+  /* Typography */
   --font-family: 'Inter', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+html[data-theme='dark'] {
+  /* Background */
+  --bg-app: #0f172a;
+  --bg-canvas: #1e293b;
+  --bg-sidebar: #1e293b;
+  --bg-surface: #334155;
+  --bg-surface-hover: #475569;
+  --bg-popover: #1e293b;
+  --bg-overlay: rgba(0, 0, 0, 0.6);
+  --bg-drop-highlight: #1e3a5f;
+
+  /* Text */
+  --text-primary: #f1f5f9;
+  --text-muted: #94a3b8;
+  --text-on-primary: #ffffff;
+  --text-popover: #e2e8f0;
+
+  /* Border */
+  --border-panel: #475569;
+
+  /* Semantic */
+  --primary: #60a5fa;
+  --primary-hover: #3b82f6;
+  --danger: #f87171;
+  --danger-hover: #ef4444;
+  --warning: #fbbf24;
+  --success: #4ade80;
+
+  /* Node */
+  --node-leaf: #1e293b;
+  --node-and: #1e3a5f;
+  --node-or: #431407;
+  --node-and-border: #3b82f6;
+  --node-or-border: #ea580c;
+  --node-and-text: #60a5fa;
+  --node-or-text: #fb923c;
+  --node-handle: #64748b;
+  --node-handle-border: #1e293b;
+  --canvas-dots: #334155;
+
+  /* Control badges */
+  --badge-preventive-bg: #1e3a5f;
+  --badge-preventive-text: #93c5fd;
+  --badge-detective-bg: #451a03;
+  --badge-detective-text: #fcd34d;
+  --badge-corrective-bg: #052e16;
+  --badge-corrective-text: #86efac;
+  --badge-mixed-bg: #334155;
+  --badge-mixed-text: #94a3b8;
+
+  /* Buttons */
+  --btn-secondary-bg: #334155;
+  --btn-secondary-hover: #475569;
+
+  /* Charts */
+  --chart-grid: #334155;
+  --chart-axis-text: #94a3b8;
+  --chart-bar-primary: #60a5fa;
+  --chart-bar-baseline: #64748b;
+  --chart-line: #60a5fa;
+  --chart-ci-fill: rgba(96, 165, 250, 0.15);
+  --chart-var-line: #475569;
+  --chart-hover: #94a3b8;
+
+  /* Selection */
+  --selection-ring: rgba(96, 165, 250, 0.3);
+  --drop-ring: rgba(96, 165, 250, 0.2);
 }
 
 *,
@@ -81,7 +203,9 @@ button {
   font-size: 14px;
   font-weight: 500;
   border-radius: 6px;
-  transition: background 0.15s, opacity 0.15s;
+  transition:
+    background 0.15s,
+    opacity 0.15s;
 }
 
 .btn:disabled {
@@ -91,7 +215,7 @@ button {
 
 .btn-primary {
   background: var(--primary);
-  color: #ffffff;
+  color: var(--text-on-primary);
 }
 
 .btn-primary:hover:not(:disabled) {
@@ -99,17 +223,17 @@ button {
 }
 
 .btn-secondary {
-  background: #f1f5f9;
+  background: var(--btn-secondary-bg);
   color: var(--text-primary);
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background: #e2e8f0;
+  background: var(--btn-secondary-hover);
 }
 
 .btn-danger {
   background: var(--danger);
-  color: #ffffff;
+  color: var(--text-on-primary);
 }
 
 .btn-danger:hover:not(:disabled) {

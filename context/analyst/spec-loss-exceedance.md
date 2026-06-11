@@ -1,7 +1,7 @@
 ---
 id: SPEC-LOSS-EXCEEDANCE
 title: Loss Exceedance Curve Specification
-status: draft
+status: approved
 assigned: analyst
 epic: E3.5
 depends_on: [SPEC-FAIR-SIMPLIFIED]
@@ -53,11 +53,11 @@ P(Loss > x) = count(ALE_k > x) / N
 
 This is the **complementary empirical CDF** (also called the survival function).
 
-### 2.3 Interpolation
+### 2.3 Interpolation & Downsampling
 
 For smooth rendering, the visualization uses the sorted sample points directly (step function at each sample). With 10,000+ iterations, this produces a visually smooth curve without interpolation.
 
-For reduced rendering load, the curve can be downsampled to ~500 evenly-spaced points along the X-axis, computing exceedance probability at each via binary search on the sorted array.
+**Downsampling responsibility:** The simulation worker performs sample downsampling (per §3.2 limits) before returning results. The `samples` array stored in `SimulationResult` is already capped at 10,000 sorted values. The frontend renders these stored points directly — no further downsampling is needed at render time. For rendering performance with 10,000 points, the chart component may optionally reduce to ~500 evenly-spaced points via binary search on the pre-sorted array.
 
 ---
 
@@ -118,6 +118,8 @@ When both baseline and controlled results are available:
 | Controlled | Solid line | Blue (#3B82F6) |
 
 The gap between curves represents the risk reduction from controls. A larger leftward shift = more effective control portfolio.
+
+> **Cross-reference:** Multi-scenario LEC overlay (2-4 scenarios) is specified in `spec-scenario-comparison.md §3.3`.
 
 ### 4.3 Key Readouts
 
@@ -213,3 +215,18 @@ Reuse D3 patterns from `ALEHistogram.tsx`:
 - **Multi-scenario overlay on LEC:** Handled by the scenario comparison feature (spec-scenario-comparison.md).
 - **Annual aggregate loss (multiple events):** The current ALE already represents annualized expected loss. A true aggregate loss distribution (summing multiple events per year) is a more complex simulation model -- deferred.
 - **PDF export of LEC:** Deferred to Phase 4 (PDF report generation).
+
+---
+
+## 9. Acceptance Criteria
+
+- [ ] `SimulationResult` has `samples?: number[]` field containing ALE samples sorted ascending
+- [ ] Samples capped at 10,000 entries; higher iteration counts are downsampled by the worker before returning
+- [ ] LEC renders as a complementary CDF: X-axis = loss amount ($), Y-axis = exceedance probability (0-100%)
+- [ ] Overlay mode: baseline shown as dashed gray line, controlled as solid blue line
+- [ ] VaR readouts display P90, P95, Mean, and Median values (sourced from `summary.percentiles`)
+- [ ] Hover interaction: crosshair with tooltip showing "P(Loss > $X) = Y%" at cursor position
+- [ ] Pre-Phase 3 scenarios (no `samples` field) gracefully degrade — LEC tab unavailable or shows informational message
+- [ ] Log scale on X-axis auto-activates when `max / min > 1000` across non-zero samples
+- [ ] Dual-simulation mode stores samples for both baseline and controlled results
+- [ ] Deterministic scenarios (all samples identical) display a vertical step function with a note

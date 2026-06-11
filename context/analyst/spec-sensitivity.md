@@ -1,7 +1,7 @@
 ---
 id: SPEC-SENSITIVITY
 title: Sensitivity Analysis Specification
-status: draft
+status: approved
 assigned: analyst
 epic: E3.3
 depends_on: [SPEC-FAIR-SIMPLIFIED, SPEC-FAIR-TAXONOMY]
@@ -72,9 +72,14 @@ For each input distribution in the scenario (leaf LEF, leaf TEF, leaf Vulnerabil
    - Constant: `value`
 
 2. Compute the distribution's **P10** and **P90** values. For efficiency, approximate these analytically rather than via sampling:
-   - PERT: Use the beta distribution quantile function with the PERT alpha/beta parameters, then scale to [min, max].
-   - Lognormal: `P10 = exp(mu + sigma * z_0.10)`, `P90 = exp(mu + sigma * z_0.90)` where `z_0.10 = -1.2816`, `z_0.90 = 1.2816`.
-   - Constant: P10 = P90 = value (no sensitivity -- skip this input).
+
+   - **PERT** (via Beta distribution quantile):
+     - Compute shape parameters: `alpha1 = 1 + lambda * (mode - min) / (max - min)`, `alpha2 = 1 + lambda * (max - mode) / (max - min)`, where `lambda = 4`.
+     - `P10 = min + (max - min) * BetaInv(0.10, alpha1, alpha2)`
+     - `P90 = min + (max - min) * BetaInv(0.90, alpha1, alpha2)`
+     - Implementation note: `BetaInv` (regularized incomplete beta inverse) may use Newton's method or a rational approximation. Libraries like jStat provide this.
+   - **Lognormal**: `P10 = exp(mu + sigma * z_0.10)`, `P90 = exp(mu + sigma * z_0.90)` where `z_0.10 = -1.2816`, `z_0.90 = 1.2816`.
+   - **Constant**: P10 = P90 = value (no sensitivity -- skip this input).
 
 3. **Hold all other inputs at their expected values** (replace distributions with constants).
 
@@ -110,6 +115,8 @@ Each input requires 2 simulation runs (P10 and P90). For a scenario with 5 leave
 
 **Optimization:** OAT runs use a fixed 1,000 iterations regardless of the scenario's configured iteration count. This is sufficient for mean ALE estimation (which converges quickly) and keeps the sweep fast.
 
+**Rationale:** Since all other inputs are held at constant expected values during each OAT run, variance comes from a single source — convergence is much faster than a full stochastic simulation. The 1,000-iteration count is used consistently across all OAT runs, so comparisons between inputs are valid (same statistical precision). The OAT results are not compared against the primary simulation's mean — they are compared against each other (P10 vs P90 ALE for the same input).
+
 ---
 
 ## 4. Data Model
@@ -118,7 +125,7 @@ Each input requires 2 simulation runs (P10 and P90). For a scenario with 5 leave
 
 ```typescript
 interface SensitivityRequest {
-  type: 'control-toggle' | 'oat-sweep';
+  type: 'controlToggle' | 'oatSweep';
   scenario: Scenario;
   controls: Control[];
   seed: number;              // Enforced same seed for all runs
@@ -130,7 +137,7 @@ interface SensitivityRequest {
 
 ```typescript
 interface SensitivityResult {
-  type: 'control-toggle' | 'oat-sweep';
+  type: 'controlToggle' | 'oatSweep';
   baselineALE: number;       // Mean ALE with all controls on (control-toggle) or all at expected (OAT)
   items: SensitivityItem[];  // Sorted by |delta| descending
   duration: number;          // Total computation time in ms
@@ -172,7 +179,7 @@ Add to `shared/src/index.ts`:
 
 ```typescript
 export interface SensitivityResult {
-  type: 'control-toggle' | 'oat-sweep';
+  type: 'controlToggle' | 'oatSweep';
   baselineALE: number;
   items: SensitivityItem[];
   duration: number;
@@ -324,3 +331,21 @@ The results panel adds a "Sensitivity" tab (alongside existing "Summary" and "Hi
 - **Monte Carlo sensitivity** (correlation-based, e.g., Spearman rank): Deferred. Requires full sample storage per input.
 - **Cost-benefit analysis** (control cost vs. ALE reduction): Deferred. Would require a `cost` field on controls.
 - **Automated recommendations** ("you should invest in X"): Deferred. The tornado chart is the decision support tool; interpretation is left to the analyst.
+
+---
+
+## 10. Acceptance Criteria
+
+- [ ] Control-toggle mode: disabling each active control one-at-a-time produces correct ALE delta vs. all-controls-on baseline
+- [ ] All control-toggle runs use the same seed as the baseline simulation
+- [ ] OAT sweep: P10/P90 computed analytically for PERT (via Beta quantile) and Lognormal (via z-score)
+- [ ] OAT sweep: all inputs except the target are held at their expected values (constant replacement)
+- [ ] Constant distributions are excluded from the OAT tornado (zero swing)
+- [ ] Results in `SensitivityResult.items` are sorted by `|delta|` descending
+- [ ] `SensitivityResult` and `SensitivityItem` interfaces are exported from `shared/src/index.ts`
+- [ ] Worker emits `sensitivity-progress` messages during multi-run analysis
+- [ ] Control reduction distributions (`lefReduction`, `lmReduction`) are included in OAT sweep
+- [ ] OAT uses fixed 1,000 iterations per run regardless of scenario config
+- [ ] Tornado chart displays bars sorted by influence (most influential at top)
+- [ ] Tornado chart correctly shows unidirectional bars for control-toggle and bidirectional bars for OAT
+- [ ] Empty states handled: no controls → message; all constant → message

@@ -34,9 +34,7 @@ export function SensitivityPanel() {
       metadata: { created: new Date().toISOString(), modified: new Date().toISOString() },
     };
 
-    const controlIds = new Set(
-      (scenario.controlAssignments ?? []).map((a) => a.controlId),
-    );
+    const controlIds = new Set((scenario.controlAssignments ?? []).map((a) => a.controlId));
     const controls = await Promise.all(
       [...controlIds].map((id) => controlStore.getControl(id).catch(() => null)),
     );
@@ -46,11 +44,7 @@ export function SensitivityPanel() {
   }, [runSensitivity, mode]);
 
   if (!results) {
-    return (
-      <div style={emptyStyle}>
-        Run a simulation first to enable sensitivity analysis.
-      </div>
-    );
+    return <div style={emptyStyle}>Run a simulation first to enable sensitivity analysis.</div>;
   }
 
   return (
@@ -88,12 +82,25 @@ export function SensitivityPanel() {
           ))}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--text-muted)' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+            fontSize: 11,
+            color: 'var(--text-muted)',
+          }}
+        >
           <span>Show top:</span>
           <select
             value={topN}
             onChange={(e) => setTopN(Number(e.target.value))}
-            style={{ fontSize: 11, padding: '2px 4px', borderRadius: 4, border: '1px solid var(--border-panel)' }}
+            style={{
+              fontSize: 11,
+              padding: '2px 4px',
+              borderRadius: 4,
+              border: '1px solid var(--border-panel)',
+            }}
           >
             <option value={5}>5</option>
             <option value={10}>10</option>
@@ -105,7 +112,7 @@ export function SensitivityPanel() {
 
       {/* Progress bar */}
       {sensitivityRunning && (
-        <div style={{ height: 4, background: '#e2e8f0', borderRadius: 2 }}>
+        <div style={{ height: 4, background: 'var(--border-panel)', borderRadius: 2 }}>
           <div
             style={{
               height: '100%',
@@ -128,8 +135,8 @@ export function SensitivityPanel() {
         />
       ) : (
         <div style={emptyStyle}>
-          Click &quot;Run Sensitivity&quot; to analyze which controls and inputs have the
-          greatest impact on risk.
+          Click &quot;Run Sensitivity&quot; to analyze which controls and inputs have the greatest
+          impact on risk.
         </div>
       )}
     </div>

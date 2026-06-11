@@ -23,7 +23,7 @@ function formatReduction(baseline: number, controlled: number): string {
 
 function reductionColor(baseline: number, controlled: number): string {
   if (baseline === 0) return 'var(--text-muted)';
-  return controlled <= baseline ? '#16a34a' : '#dc2626';
+  return controlled <= baseline ? 'var(--success)' : 'var(--danger)';
 }
 
 type RowDef = { label: string; getValue: (r: SimulationResult) => number | undefined };

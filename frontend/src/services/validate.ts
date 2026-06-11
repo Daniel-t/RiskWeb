@@ -21,7 +21,9 @@ export function isValidControl(c: unknown): c is Control {
     typeof ctrl.category === 'string' &&
     ['preventive', 'detective', 'corrective'].includes(ctrl.category) &&
     isValidDistribution(ctrl.lefReduction) &&
-    (ctrl.lmReduction === undefined || ctrl.lmReduction === null || isValidDistribution(ctrl.lmReduction)) &&
+    (ctrl.lmReduction === undefined ||
+      ctrl.lmReduction === null ||
+      isValidDistribution(ctrl.lmReduction)) &&
     Array.isArray(ctrl.attackTechniques) &&
     Array.isArray(ctrl.d3fendTechniques)
   );

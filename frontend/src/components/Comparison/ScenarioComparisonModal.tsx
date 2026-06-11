@@ -9,7 +9,11 @@ interface ScenarioComparisonModalProps {
   onCompare: (scenarios: Scenario[], referenceId: string) => void;
 }
 
-export function ScenarioComparisonModal({ open, onClose, onCompare }: ScenarioComparisonModalProps) {
+export function ScenarioComparisonModal({
+  open,
+  onClose,
+  onCompare,
+}: ScenarioComparisonModalProps) {
   const [scenarios, setScenarios] = useState<ScenarioMeta[]>([]);
   const [search, setSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -32,14 +36,14 @@ export function ScenarioComparisonModal({ open, onClose, onCompare }: ScenarioCo
         if (cancelled) return;
         setLoading(false);
       });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [open]);
 
   if (!open) return null;
 
-  const filtered = scenarios.filter((s) =>
-    s.name.toLowerCase().includes(search.toLowerCase()),
-  );
+  const filtered = scenarios.filter((s) => s.name.toLowerCase().includes(search.toLowerCase()));
 
   const toggleSelection = (id: string, hasResults: boolean) => {
     if (!hasResults) return;
@@ -66,7 +70,7 @@ export function ScenarioComparisonModal({ open, onClose, onCompare }: ScenarioCo
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(0,0,0,0.3)',
+        background: 'var(--bg-overlay)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -76,21 +80,31 @@ export function ScenarioComparisonModal({ open, onClose, onCompare }: ScenarioCo
     >
       <div
         style={{
-          background: 'white',
+          background: 'var(--bg-popover)',
           borderRadius: 8,
           padding: 24,
           maxWidth: 640,
           width: '90%',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
+          boxShadow: '0 8px 32px var(--bg-overlay)',
           maxHeight: '80vh',
           display: 'flex',
           flexDirection: 'column',
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 16,
+          }}
+        >
           <h3 style={{ fontSize: 16, fontWeight: 600 }}>Compare Scenarios</h3>
-          <button style={{ fontSize: 18, color: 'var(--text-muted)', cursor: 'pointer' }} onClick={onClose}>
+          <button
+            style={{ fontSize: 18, color: 'var(--text-muted)', cursor: 'pointer' }}
+            onClick={onClose}
+          >
             &times;
           </button>
         </div>
@@ -118,18 +132,58 @@ export function ScenarioComparisonModal({ open, onClose, onCompare }: ScenarioCo
           }}
         >
           {loading ? (
-            <div style={{ padding: 16, textAlign: 'center', color: 'var(--text-muted)' }}>Loading...</div>
+            <div style={{ padding: 16, textAlign: 'center', color: 'var(--text-muted)' }}>
+              Loading...
+            </div>
           ) : filtered.length === 0 ? (
-            <div style={{ padding: 16, textAlign: 'center', color: 'var(--text-muted)' }}>No scenarios found</div>
+            <div style={{ padding: 16, textAlign: 'center', color: 'var(--text-muted)' }}>
+              No scenarios found
+            </div>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border-panel)' }}>
                   <th style={{ padding: '8px 12px', width: 32 }} />
-                  <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 13, fontWeight: 600 }}>Scenario</th>
-                  <th style={{ padding: '8px 12px', textAlign: 'right', fontSize: 13, fontWeight: 600 }}>Mean ALE</th>
-                  <th style={{ padding: '8px 12px', textAlign: 'right', fontSize: 13, fontWeight: 600 }}>P90</th>
-                  <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 13, fontWeight: 600 }}>Modified</th>
+                  <th
+                    style={{
+                      padding: '8px 12px',
+                      textAlign: 'left',
+                      fontSize: 13,
+                      fontWeight: 600,
+                    }}
+                  >
+                    Scenario
+                  </th>
+                  <th
+                    style={{
+                      padding: '8px 12px',
+                      textAlign: 'right',
+                      fontSize: 13,
+                      fontWeight: 600,
+                    }}
+                  >
+                    Mean ALE
+                  </th>
+                  <th
+                    style={{
+                      padding: '8px 12px',
+                      textAlign: 'right',
+                      fontSize: 13,
+                      fontWeight: 600,
+                    }}
+                  >
+                    P90
+                  </th>
+                  <th
+                    style={{
+                      padding: '8px 12px',
+                      textAlign: 'left',
+                      fontSize: 13,
+                      fontWeight: 600,
+                    }}
+                  >
+                    Modified
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -145,7 +199,7 @@ export function ScenarioComparisonModal({ open, onClose, onCompare }: ScenarioCo
                       onClick={() => toggleSelection(s.id, hasResults)}
                       style={{
                         cursor: hasResults ? 'pointer' : 'not-allowed',
-                        background: isSelected ? '#eff6ff' : 'transparent',
+                        background: isSelected ? 'var(--bg-drop-highlight)' : 'transparent',
                         borderBottom: '1px solid var(--border-panel)',
                         opacity: hasResults ? 1 : 0.5,
                       }}
@@ -160,16 +214,51 @@ export function ScenarioComparisonModal({ open, onClose, onCompare }: ScenarioCo
                           style={{ cursor: hasResults ? 'pointer' : 'not-allowed' }}
                         />
                       </td>
-                      <td style={{ padding: '8px 12px', fontSize: 14, fontStyle: hasResults ? 'normal' : 'italic' }}>
+                      <td
+                        style={{
+                          padding: '8px 12px',
+                          fontSize: 14,
+                          fontStyle: hasResults ? 'normal' : 'italic',
+                        }}
+                      >
                         {s.name}
                         {isRef && (
-                          <span style={{ fontSize: 11, color: 'var(--primary)', marginLeft: 8 }}>(ref)</span>
+                          <span style={{ fontSize: 11, color: 'var(--primary)', marginLeft: 8 }}>
+                            (ref)
+                          </span>
+                        )}
+                        {hasResults && s.hasSamples === false && (
+                          <span
+                            title="Missing sample data — exceedance curves unavailable. Re-run simulation and re-save."
+                            style={{
+                              marginLeft: 6,
+                              color: 'var(--warning)',
+                              fontSize: 14,
+                              cursor: 'help',
+                            }}
+                          >
+                            &#9888;
+                          </span>
                         )}
                       </td>
-                      <td style={{ padding: '8px 12px', textAlign: 'right', fontSize: 13, fontFamily: 'monospace' }}>
+                      <td
+                        style={{
+                          padding: '8px 12px',
+                          textAlign: 'right',
+                          fontSize: 13,
+                          fontFamily: 'monospace',
+                        }}
+                      >
                         {hasResults ? formatCurrency(s.meanALE!) : '--'}
                       </td>
-                      <td style={{ padding: '8px 12px', textAlign: 'right', fontSize: 13, fontFamily: 'monospace' }}>
+                      <td
+                        style={{
+                          padding: '8px 12px',
+                          textAlign: 'right',
+                          fontSize: 13,
+                          fontFamily: 'monospace',
+                        }}
+                      >
                         {s.p90 !== undefined ? formatCurrency(s.p90) : '--'}
                       </td>
                       <td style={{ padding: '8px 12px', fontSize: 13, color: 'var(--text-muted)' }}>
@@ -193,7 +282,9 @@ export function ScenarioComparisonModal({ open, onClose, onCompare }: ScenarioCo
             )}
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
+            <button className="btn btn-secondary" onClick={onClose}>
+              Cancel
+            </button>
             <button
               className="btn btn-primary"
               disabled={selectedIds.size < 2}

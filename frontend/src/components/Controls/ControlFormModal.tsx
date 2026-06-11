@@ -10,7 +10,10 @@ interface ControlFormModalProps {
   prefill?: Partial<Omit<Control, 'id' | 'metadata'>>;
 }
 
-const defaultLefReduction: Distribution = { type: 'pert', params: { min: 0.1, mode: 0.5, max: 0.9 } };
+const defaultLefReduction: Distribution = {
+  type: 'pert',
+  params: { min: 0.1, mode: 0.5, max: 0.9 },
+};
 
 export function ControlFormModal({ open, onClose, editControlId, prefill }: ControlFormModalProps) {
   const { getControl, createControl, updateControl, deleteControl } = useControlStore();
@@ -20,7 +23,10 @@ export function ControlFormModal({ open, onClose, editControlId, prefill }: Cont
   const [category, setCategory] = useState<ControlCategory>('preventive');
   const [lefReduction, setLefReduction] = useState<Distribution>(defaultLefReduction);
   const [hasLmReduction, setHasLmReduction] = useState(false);
-  const [lmReduction, setLmReduction] = useState<Distribution>({ type: 'pert', params: { min: 0, mode: 0.3, max: 0.6 } });
+  const [lmReduction, setLmReduction] = useState<Distribution>({
+    type: 'pert',
+    params: { min: 0, mode: 0.3, max: 0.6 },
+  });
   const [attackTechniques, setAttackTechniques] = useState<string[]>([]);
   const [d3fendTechniques, setD3fendTechniques] = useState<string[]>([]);
   const [techInput, setTechInput] = useState('');
@@ -99,7 +105,20 @@ export function ControlFormModal({ open, onClose, editControlId, prefill }: Cont
     } finally {
       setSaving(false);
     }
-  }, [name, description, category, attackTechniques, d3fendTechniques, lefReduction, hasLmReduction, lmReduction, editControlId, createControl, updateControl, onClose]);
+  }, [
+    name,
+    description,
+    category,
+    attackTechniques,
+    d3fendTechniques,
+    lefReduction,
+    hasLmReduction,
+    lmReduction,
+    editControlId,
+    createControl,
+    updateControl,
+    onClose,
+  ]);
 
   const handleDelete = useCallback(async () => {
     if (!editControlId) return;
@@ -131,23 +150,25 @@ export function ControlFormModal({ open, onClose, editControlId, prefill }: Cont
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(0,0,0,0.4)',
+        background: 'var(--bg-overlay)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         zIndex: 200,
       }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
     >
       <div
         style={{
-          background: 'white',
+          background: 'var(--bg-popover)',
           borderRadius: 8,
           width: 560,
           maxHeight: '80vh',
           overflow: 'auto',
           padding: 24,
-          boxShadow: '0 8px 32px rgba(0,0,0,0.16)',
+          boxShadow: '0 8px 32px var(--bg-overlay)',
         }}
       >
         <h3 style={{ margin: '0 0 16px', fontSize: 16 }}>
@@ -159,7 +180,10 @@ export function ControlFormModal({ open, onClose, editControlId, prefill }: Cont
           <input
             className={`form-input${nameError ? ' error' : ''}`}
             value={name}
-            onChange={(e) => { setName(e.target.value); setNameError(''); }}
+            onChange={(e) => {
+              setName(e.target.value);
+              setNameError('');
+            }}
             maxLength={200}
           />
           {nameError && <div className="form-error">{nameError}</div>}
@@ -199,7 +223,15 @@ export function ControlFormModal({ open, onClose, editControlId, prefill }: Cont
         </div>
 
         <div style={{ marginTop: 16 }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: 'pointer' }}>
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              fontSize: 13,
+              cursor: 'pointer',
+            }}
+          >
             <input
               type="checkbox"
               checked={hasLmReduction}
@@ -226,7 +258,12 @@ export function ControlFormModal({ open, onClose, editControlId, prefill }: Cont
               placeholder="e.g. T1566"
               value={techInput}
               onChange={(e) => setTechInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTechnique(); } }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  addTechnique();
+                }
+              }}
               style={{ flex: 1 }}
             />
             <button className="btn btn-secondary" onClick={addTechnique} style={{ fontSize: 12 }}>
@@ -240,8 +277,8 @@ export function ControlFormModal({ open, onClose, editControlId, prefill }: Cont
                 style={{
                   padding: '2px 8px',
                   borderRadius: 12,
-                  background: '#dbeafe',
-                  color: '#1d4ed8',
+                  background: 'var(--badge-preventive-bg)',
+                  color: 'var(--badge-preventive-text)',
                   fontSize: 11,
                   fontWeight: 500,
                   display: 'inline-flex',
@@ -252,7 +289,15 @@ export function ControlFormModal({ open, onClose, editControlId, prefill }: Cont
                 {t}
                 <button
                   onClick={() => setAttackTechniques(attackTechniques.filter((x) => x !== t))}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 12, color: '#1d4ed8', lineHeight: 1 }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: 0,
+                    fontSize: 12,
+                    color: 'var(--badge-preventive-text)',
+                    lineHeight: 1,
+                  }}
                 >
                   x
                 </button>
@@ -269,7 +314,12 @@ export function ControlFormModal({ open, onClose, editControlId, prefill }: Cont
               placeholder="e.g. D3-MFA"
               value={d3fInput}
               onChange={(e) => setD3fInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addD3fend(); } }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  addD3fend();
+                }
+              }}
               style={{ flex: 1 }}
             />
             <button className="btn btn-secondary" onClick={addD3fend} style={{ fontSize: 12 }}>
@@ -283,8 +333,8 @@ export function ControlFormModal({ open, onClose, editControlId, prefill }: Cont
                 style={{
                   padding: '2px 8px',
                   borderRadius: 12,
-                  background: '#dcfce7',
-                  color: '#166534',
+                  background: 'var(--badge-corrective-bg)',
+                  color: 'var(--badge-corrective-text)',
                   fontSize: 11,
                   fontWeight: 500,
                   display: 'inline-flex',
@@ -295,7 +345,15 @@ export function ControlFormModal({ open, onClose, editControlId, prefill }: Cont
                 {t}
                 <button
                   onClick={() => setD3fendTechniques(d3fendTechniques.filter((x) => x !== t))}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 12, color: '#166534', lineHeight: 1 }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: 0,
+                    fontSize: 12,
+                    color: 'var(--badge-corrective-text)',
+                    lineHeight: 1,
+                  }}
                 >
                   x
                 </button>
@@ -306,7 +364,11 @@ export function ControlFormModal({ open, onClose, editControlId, prefill }: Cont
 
         <div style={{ display: 'flex', gap: 8, marginTop: 24, justifyContent: 'flex-end' }}>
           {editControlId && (
-            <button className="btn btn-danger" onClick={handleDelete} style={{ marginRight: 'auto' }}>
+            <button
+              className="btn btn-danger"
+              onClick={handleDelete}
+              style={{ marginRight: 'auto' }}
+            >
               Delete
             </button>
           )}

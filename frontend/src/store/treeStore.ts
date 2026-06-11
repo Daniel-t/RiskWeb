@@ -10,12 +10,7 @@ import {
   MarkerType,
 } from '@xyflow/react';
 import dagre from '@dagrejs/dagre';
-import type {
-  AttackTreeNode,
-  Edge as SharedEdge,
-  FAIRInputs,
-  Distribution,
-} from '@shared/index';
+import type { AttackTreeNode, Edge as SharedEdge, FAIRInputs, Distribution } from '@shared/index';
 
 export interface TreeNodeData {
   label: string;
@@ -214,9 +209,7 @@ export const useTreeStore = create<TreeStore>((set, get) => ({
   updateNodeType: (id, type) => {
     set((state) => ({
       nodes: state.nodes.map((n) =>
-        n.id === id
-          ? { ...n, type: 'gate', data: { ...n.data, nodeType: type } }
-          : n,
+        n.id === id ? { ...n, type: 'gate', data: { ...n.data, nodeType: type } } : n,
       ),
     }));
   },
@@ -355,7 +348,11 @@ export const useTreeStore = create<TreeStore>((set, get) => ({
         } else if (node.data.fairInputs.tef && node.data.fairInputs.vulnerability) {
           errors.push(...validateDistribution(node.data.fairInputs.tef, node.data.label, 'TEF'));
           errors.push(
-            ...validateDistribution(node.data.fairInputs.vulnerability, node.data.label, 'Vulnerability'),
+            ...validateDistribution(
+              node.data.fairInputs.vulnerability,
+              node.data.label,
+              'Vulnerability',
+            ),
           );
         } else if (node.data.fairInputs.tef || node.data.fairInputs.vulnerability) {
           errors.push(`Node '${node.data.label}': TEF and Vulnerability must both be defined`);
@@ -387,7 +384,11 @@ export const useTreeStore = create<TreeStore>((set, get) => ({
       if (!node.data.fairInputs) return 'warning';
       if (node.data.fairInputs.tef && node.data.fairInputs.vulnerability) {
         const tefErrors = validateDistribution(node.data.fairInputs.tef, '', 'TEF');
-        const vulnErrors = validateDistribution(node.data.fairInputs.vulnerability, '', 'Vulnerability');
+        const vulnErrors = validateDistribution(
+          node.data.fairInputs.vulnerability,
+          '',
+          'Vulnerability',
+        );
         return tefErrors.length === 0 && vulnErrors.length === 0 ? 'valid' : 'warning';
       }
       if (node.data.fairInputs.tef || node.data.fairInputs.vulnerability) return 'warning';

@@ -22,7 +22,7 @@ export function ComparisonCards({ scenarios, referenceId, colors }: ComparisonCa
               flex: 1,
               minWidth: 140,
               padding: 12,
-              background: 'white',
+              background: 'var(--bg-popover)',
               border: '1px solid var(--border-panel)',
               borderLeft: isRef ? `3px solid var(--primary)` : '1px solid var(--border-panel)',
               borderRadius: 6,

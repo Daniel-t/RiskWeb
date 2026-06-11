@@ -50,8 +50,20 @@ UX designer for RiskWeb. Owns UI/UX design: wireframes, interaction patterns, co
 
 ## Current Focus
 
-Phase 3 Wave A: TASK-305 (Phase 3 UI wireframes) -- DRAFT. Spec at `context/ux/spec-phase3-wireframes.md`. Awaiting human review before handoff to @frontend.
+Phase 4 Wave A: TASK-402 complete. Next: TASK-433 (theme accessibility audit) after TASK-424/425 implementation.
+
+## Completed
+
+- **TASK-402**: Design system & theming spec (light/dark) -- APPROVED (2026-05-27). Spec at `context/ux/spec-design-system.md`.
+  - 40+ tokens defined across 5 categories (bg, text, border, semantic, component)
+  - Dark theme values specified for all tokens
+  - 15 hardcoded colors identified for tokenization
+  - Theme switching via `html[data-theme="dark"]` + localStorage persistence
+- **TASK-305**: Phase 3 UI wireframes -- APPROVED (2026-05-26). Spec at `context/ux/spec-phase3-wireframes.md`.
+  - Covers: results drawer tab restructure, TEF x Vulnerability toggle, sensitivity tornado charts, loss exceedance curve, scenario comparison view
+  - Handoff files delivered to @frontend for TASK-320 through TASK-324
 
 ## Decisions Log
 
-(none yet)
+- **Two-level tab scheme** (2026-05-26): Results drawer uses primary tabs (Distribution/Exceedance/Sensitivity) for visualization type and secondary toggle (Ctrl/Base/Cmp) for dataset. This avoids combinatorial explosion of tabs.
+- **No new design tokens** (2026-05-26): All Phase 3 components reuse existing CSS custom properties. No theme changes needed.

@@ -92,6 +92,7 @@ export interface ScenarioMeta {
   modified: string;
   meanALE?: number;
   p90?: number;
+  hasSamples?: boolean;
 }
 
 // Control types

@@ -5,6 +5,7 @@ interface DistributionInputProps {
   label: string;
   value: Distribution | undefined;
   onChange: (dist: Distribution) => void;
+  max?: number;
 }
 
 const defaultDistributions: Record<string, Distribution> = {
@@ -13,10 +14,11 @@ const defaultDistributions: Record<string, Distribution> = {
   constant: { type: 'constant', params: { value: 0 } },
 };
 
-function getValidationError(dist: Distribution): string | null {
+function getValidationError(dist: Distribution, maxValue?: number): string | null {
   if (dist.type === 'pert') {
     const { min, mode, max } = dist.params;
     if (min < 0) return 'Min must be >= 0';
+    if (maxValue !== undefined && max > maxValue) return `Max must be <= ${maxValue}`;
     if (min > mode) return 'Min must be <= Mode';
     if (mode > max) return 'Mode must be <= Max';
     if (max <= min) return 'Max must be > Min';
@@ -28,14 +30,21 @@ function getValidationError(dist: Distribution): string | null {
   }
   if (dist.type === 'constant') {
     if (dist.params.value < 0) return 'Value must be >= 0';
+    if (maxValue !== undefined && dist.params.value > maxValue)
+      return `Value must be <= ${maxValue}`;
     return null;
   }
   return null;
 }
 
-export function DistributionInput({ label, value, onChange }: DistributionInputProps) {
+export function DistributionInput({
+  label,
+  value,
+  onChange,
+  max: maxValue,
+}: DistributionInputProps) {
   const dist = value ?? defaultDistributions.pert;
-  const error = getValidationError(dist);
+  const error = getValidationError(dist, maxValue);
 
   const handleTypeChange = (e: ChangeEvent<HTMLSelectElement>) => {
     onChange(defaultDistributions[e.target.value]);

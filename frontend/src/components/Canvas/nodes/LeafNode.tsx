@@ -6,11 +6,11 @@ import { useControlStore } from '../../../store/controlStore';
 import { ValidationBadge } from './ValidationBadge';
 
 const categoryColorMap: Record<ControlCategory, { bg: string; text: string }> = {
-  preventive: { bg: '#dbeafe', text: '#1d4ed8' },
-  detective: { bg: '#fef3c7', text: '#92400e' },
-  corrective: { bg: '#dcfce7', text: '#166534' },
+  preventive: { bg: 'var(--badge-preventive-bg)', text: 'var(--badge-preventive-text)' },
+  detective: { bg: 'var(--badge-detective-bg)', text: 'var(--badge-detective-text)' },
+  corrective: { bg: 'var(--badge-corrective-bg)', text: 'var(--badge-corrective-text)' },
 };
-const mixedColor = { bg: '#f1f5f9', text: '#64748b' };
+const mixedColor = { bg: 'var(--badge-mixed-bg)', text: 'var(--badge-mixed-text)' };
 
 export function LeafNode({ id, data, selected }: NodeProps) {
   const nodeData = data as unknown as TreeNodeData;
@@ -94,20 +94,20 @@ export function LeafNode({ id, data, selected }: NodeProps) {
       style={{
         width: 160,
         height: 60,
-        background: dropHighlight ? '#eff6ff' : 'var(--node-leaf)',
+        background: dropHighlight ? 'var(--bg-drop-highlight)' : 'var(--node-leaf)',
         border: selected
           ? '2px solid var(--primary)'
           : dropHighlight
             ? '2px dashed var(--primary)'
-            : '1px solid #e2e8f0',
+            : '1px solid var(--border-panel)',
         borderRadius: 8,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         boxShadow: selected
-          ? '0 0 0 3px rgba(59, 130, 246, 0.3)'
+          ? '0 0 0 3px var(--selection-ring)'
           : dropHighlight
-            ? '0 0 0 2px rgba(59, 130, 246, 0.15)'
+            ? '0 0 0 2px var(--drop-ring)'
             : 'none',
         position: 'relative',
         cursor: 'pointer',
@@ -150,8 +150,8 @@ export function LeafNode({ id, data, selected }: NodeProps) {
                 bottom: '100%',
                 left: 0,
                 marginBottom: 4,
-                background: 'white',
-                border: '1px solid #e2e8f0',
+                background: 'var(--bg-popover)',
+                border: '1px solid var(--border-panel)',
                 borderRadius: 6,
                 padding: 8,
                 minWidth: 180,
@@ -171,7 +171,7 @@ export function LeafNode({ id, data, selected }: NodeProps) {
                       gap: 6,
                       padding: '3px 0',
                       fontSize: 11,
-                      color: '#334155',
+                      color: 'var(--text-popover)',
                       opacity: c.enabled ? 1 : 0.5,
                     }}
                   >
@@ -198,8 +198,12 @@ export function LeafNode({ id, data, selected }: NodeProps) {
                     >
                       {c.name}
                     </span>
-                    <span style={{ color: '#64748b', flexShrink: 0 }}>{c.effectiveness}</span>
-                    {!c.enabled && <span style={{ color: '#94a3b8', fontSize: 9 }}>OFF</span>}
+                    <span style={{ color: 'var(--text-muted)', flexShrink: 0 }}>
+                      {c.effectiveness}
+                    </span>
+                    {!c.enabled && (
+                      <span style={{ color: 'var(--text-muted)', fontSize: 9 }}>OFF</span>
+                    )}
                   </div>
                 );
               })}
@@ -230,7 +234,7 @@ export function LeafNode({ id, data, selected }: NodeProps) {
             bottom: 4,
             right: 6,
             fontSize: 9,
-            color: '#64748b',
+            color: 'var(--text-muted)',
             fontStyle: 'italic',
           }}
         >
@@ -246,6 +250,6 @@ export function LeafNode({ id, data, selected }: NodeProps) {
 const handleStyle: React.CSSProperties = {
   width: 10,
   height: 10,
-  background: '#94a3b8',
-  border: '2px solid white',
+  background: 'var(--node-handle)',
+  border: '2px solid var(--node-handle-border)',
 };

@@ -95,34 +95,36 @@
 | TASK-222 | End-to-end validation (controls impact correctness) | @analyst | done | high | TASK-220, TASK-221 | @secarch, @test |
 | TASK-223 | Security review (Phase 2 frontend + storage) | @secarch | done | high | TASK-220, TASK-221 | @analyst, @test |
 
-## Phase 3: Advanced Analysis -- Wave A (Specs & Design)
+## Phase 3: Advanced Analysis -- Wave A (Specs & Design) -- COMPLETE 2026-05-26
 
 | ID | Title | Assigned | Status | Priority | Depends On | Reviewers |
 |----|-------|----------|--------|----------|------------|-----------|
-| TASK-301 | FAIR taxonomy expansion spec (TEF x Vulnerability) | @analyst | draft | high | -- | @frontend, @secarch |
-| TASK-302 | Sensitivity analysis spec (control-toggle + OAT) | @analyst | draft | high | -- | @frontend, @secarch |
-| TASK-303 | Loss exceedance curve spec | @analyst | draft | medium | -- | @frontend, @ux |
-| TASK-304 | Scenario comparison spec | @analyst | draft | medium | -- | @frontend, @ux |
-    | TASK-305 | Phase 3 UI wireframes | @ux | approved | high | TASK-301..TASK-304 | @frontend, @analyst |
+| TASK-301 | FAIR taxonomy expansion spec (TEF x Vulnerability) | @analyst | approved | high | -- | @frontend, @secarch |
+| TASK-302 | Sensitivity analysis spec (control-toggle + OAT) | @analyst | approved | high | -- | @frontend, @secarch |
+| TASK-303 | Loss exceedance curve spec | @analyst | approved | medium | -- | @frontend, @ux |
+| TASK-304 | Scenario comparison spec | @analyst | approved | medium | -- | @frontend, @ux |
+| TASK-305 | Phase 3 UI wireframes | @ux | approved | high | TASK-301..TASK-304 | @frontend, @analyst |
 
-## Phase 3: Advanced Analysis -- Wave B (Types + Engine)
+## Phase 3: Advanced Analysis -- Wave B (Types + Engine) -- COMPLETE 2026-05-26
 
-| ID | Title | Assigned | Status | Priority | Depends On | Reviewers |
-|----|-------|----------|--------|----------|------------|-----------|
-| TASK-310 | Extend FAIRInputs + add sensitivity types in shared | @frontend | pending | high | TASK-301, TASK-302, TASK-303 | @analyst, @secarch |
-| TASK-311 | Update evaluateTree() for TEF x Vulnerability | @frontend | pending | high | TASK-310 | @analyst, @secarch |
-| TASK-312 | Sensitivity engine (control-toggle + OAT sweep) | @frontend | pending | high | TASK-310 | @analyst, @secarch |
-| TASK-313 | Update simulation worker (samples + sensitivity messages) | @frontend | pending | high | TASK-311, TASK-312 | @secarch |
-
-## Phase 3: Advanced Analysis -- Wave C (UI + Visualization)
+> Wave B engine already implemented ahead of spec approval. Types extended, TEF x Vulnerability in evaluateTree(), sensitivity engine (control-toggle + OAT), worker protocol with samples and sensitivity messages all in place.
 
 | ID | Title | Assigned | Status | Priority | Depends On | Reviewers |
 |----|-------|----------|--------|----------|------------|-----------|
-| TASK-320 | TEF/Vulnerability toggle in property panel | @frontend | pending | high | TASK-311, TASK-305 | @ux, @analyst |
-| TASK-321 | Sensitivity tornado chart component | @frontend | pending | high | TASK-312, TASK-305 | @ux, @analyst |
-| TASK-322 | Loss exceedance curve component | @frontend | pending | medium | TASK-313, TASK-305 | @ux, @analyst |
-| TASK-323 | Results drawer: add LEC + sensitivity tabs | @frontend | pending | medium | TASK-321, TASK-322 | @ux |
-| TASK-324 | Scenario comparison picker + view | @frontend | pending | medium | TASK-313, TASK-305 | @ux, @analyst |
+| TASK-310 | Extend FAIRInputs + add sensitivity types in shared | @frontend | done | high | TASK-301, TASK-302, TASK-303 | @analyst, @secarch |
+| TASK-311 | Update evaluateTree() for TEF x Vulnerability | @frontend | done | high | TASK-310 | @analyst, @secarch |
+| TASK-312 | Sensitivity engine (control-toggle + OAT sweep) | @frontend | done | high | TASK-310 | @analyst, @secarch |
+| TASK-313 | Update simulation worker (samples + sensitivity messages) | @frontend | done | high | TASK-311, TASK-312 | @secarch |
+
+## Phase 3: Advanced Analysis -- Wave C (UI + Visualization) -- COMPLETE 2026-05-26
+
+| ID | Title | Assigned | Status | Priority | Depends On | Reviewers |
+|----|-------|----------|--------|----------|------------|-----------|
+| TASK-320 | TEF/Vulnerability toggle in property panel | @frontend | done | high | TASK-311, TASK-305 | @ux, @analyst |
+| TASK-321 | Sensitivity tornado chart component | @frontend | done | high | TASK-312, TASK-305 | @ux, @analyst |
+| TASK-322 | Loss exceedance curve component | @frontend | done | medium | TASK-313, TASK-305 | @ux, @analyst |
+| TASK-323 | Results drawer: add LEC + sensitivity tabs | @frontend | done | medium | TASK-321, TASK-322 | @ux |
+| TASK-324 | Scenario comparison picker + view | @frontend | done | medium | TASK-313, TASK-305 | @ux, @analyst |
 
 ## Phase 3: Advanced Analysis -- Wave D (Integration & Validation)
 
@@ -137,11 +139,56 @@
 
 | ID | Title | Assigned | Status | Priority | Depends On | Reviewers |
 |----|-------|----------|--------|----------|------------|-----------|
-| DEFECT-SAVE | Scenario save: rename overwrites original + import save error | @frontend | pending | high | -- | @analyst, @secarch, @test |
+| DEFECT-SAVE | Scenario save: rename overwrites original + import save error | @frontend | implemented (verify in TASK-401) | high | -- | @analyst, @secarch, @test |
 
 ## Feature Requests
 
 | ID | Title | Assigned | Status | Priority | Depends On | Reviewers |
 |----|-------|----------|--------|----------|------------|-----------|
-| FEAT-COMPARE-EXCEEDANCE | Resilient exceedance curves in scenario comparison | -- | draft | medium | TASK-324 | @frontend, @ux |
-| FEAT-CLIPBOARD-EXPORT | Copy/import scenario JSON via clipboard | -- | draft | low | -- | @frontend, @ux, @secarch |
+| FEAT-COMPARE-EXCEEDANCE | Resilient exceedance curves in scenario comparison | -- | superseded by TASK-407 | medium | TASK-324 | @frontend, @ux |
+| FEAT-CLIPBOARD-EXPORT | Copy/import scenario JSON via clipboard | -- | superseded by TASK-405 | low | -- | @frontend, @ux, @secarch |
+
+## Phase 4: Polish, Export & Fixes -- Wave A (Specs, Design & Verification)
+
+| ID | Title | Assigned | Status | Priority | Depends On | Reviewers |
+|----|-------|----------|--------|----------|------------|-----------|
+| TASK-401 | Verify defect/security fixes already in codebase | @test | done | high | -- | @secarch, @analyst |
+| TASK-402 | Design system & theming spec (light/dark) | @ux | approved | medium | -- | @frontend, @analyst |
+| TASK-403 | PDF report generation spec (client-side) | @analyst | deferred (future wave) | medium | -- | @frontend, @ux |
+| TASK-404 | CSV results export spec | @analyst | approved | low | -- | @frontend |
+| TASK-405 | Clipboard export/import spec (refine draft) | @analyst | approved | low | -- | @frontend, @ux, @secarch |
+| TASK-406 | Performance optimization spec | @analyst | deferred (future wave) | medium | -- | @frontend, @secarch |
+| TASK-407 | Resilient exceedance curves spec (refine draft) | @analyst | approved | medium | -- | @frontend, @ux |
+
+## Phase 4: Polish, Export & Fixes -- Wave B (Core Implementation)
+
+| ID | Title | Assigned | Status | Priority | Depends On | Reviewers |
+|----|-------|----------|--------|----------|------------|-----------|
+| TASK-410 | Worker wall-clock timeout verification (F-03) | @frontend | done | medium | -- | @secarch, @test |
+| TASK-411 | Extract shared export/import helpers from fileIO.ts | @frontend | done | medium | TASK-405 | @secarch, @test |
+| TASK-412 | CSV results export engine | @frontend | done | low | TASK-404 | @analyst, @test |
+| TASK-413 | ~~PDF report generation engine (jsPDF)~~ | ~~@frontend~~ | deferred | medium | TASK-403 | @analyst, @test |
+| TASK-414 | Add hasSamples flag to ScenarioMeta + storage | @frontend | done | medium | TASK-407 | @analyst, @test |
+| TASK-415 | Design system CSS tokens + theme infrastructure | @frontend | done | medium | TASK-402 | @ux, @test |
+
+## Phase 4: Polish, Export & Fixes -- Wave C (UI Implementation)
+
+| ID | Title | Assigned | Status | Priority | Depends On | Reviewers |
+|----|-------|----------|--------|----------|------------|-----------|
+| TASK-420 | Resilient exceedance curves UI | @frontend | pending | medium | TASK-414, TASK-407 | @ux, @analyst, @test |
+| TASK-421 | Clipboard copy/import scenario JSON | @frontend | pending | low | TASK-411, TASK-405 | @ux, @secarch, @test |
+| TASK-422 | CSV export button in results drawer | @frontend | pending | low | TASK-412 | @ux, @test |
+| TASK-423 | ~~PDF report button + generation UI~~ | ~~@frontend~~ | deferred | medium | TASK-413 | @ux, @analyst, @test |
+| TASK-424 | Light/dark theme toggle | @frontend | pending | medium | TASK-415, TASK-402 | @ux, @test |
+| TASK-425 | Apply design system tokens across components | @frontend | pending | medium | TASK-415 | @ux, @test |
+| TASK-426 | ~~React Flow virtualization for large trees~~ | ~~@frontend~~ | deferred | medium | TASK-406 | @secarch, @test |
+| TASK-427 | ~~Worker pool for parallel sensitivity analysis~~ | ~~@frontend~~ | deferred | low | TASK-406 | @secarch, @test |
+
+## Phase 4: Polish, Export & Fixes -- Wave D (Validation & Security Review)
+
+| ID | Title | Assigned | Status | Priority | Depends On | Reviewers |
+|----|-------|----------|--------|----------|------------|-----------|
+| TASK-430 | End-to-end validation (all Phase 4 features) | @analyst | pending | high | TASK-420..TASK-427 | @secarch, @test |
+| TASK-431 | Comprehensive security review (full app -- E4.5) | @secarch | pending | high | TASK-410..TASK-427 | @analyst, @test |
+| TASK-432 | Test coverage (unit + integration) | @test | pending | high | TASK-410..TASK-427 | @analyst, @secarch |
+| TASK-433 | Theme accessibility audit (WCAG contrast) | @ux | pending | medium | TASK-424, TASK-425 | @secarch, @test |

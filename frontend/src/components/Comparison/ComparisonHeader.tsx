@@ -22,12 +22,12 @@ export function ComparisonHeader({ scenarios, referenceId, onExit }: ComparisonH
       }}
     >
       <div style={{ fontSize: 13, fontWeight: 500 }}>
-        Comparing:{' '}
-        <strong>{ref?.name ?? 'Unknown'}</strong>
+        Comparing: <strong>{ref?.name ?? 'Unknown'}</strong>
         <span style={{ color: 'var(--text-muted)' }}> (ref)</span>
         {others.map((s) => (
           <span key={s.id}>
-            {' '}vs. <strong>{s.name}</strong>
+            {' '}
+            vs. <strong>{s.name}</strong>
           </span>
         ))}
       </div>

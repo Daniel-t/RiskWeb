@@ -119,7 +119,10 @@ export function evaluateTree(
       // TEF x Vulnerability decomposition
       if (node.fairInputs.tef && node.fairInputs.vulnerability) {
         tef = sampleDistribution(node.fairInputs.tef, rng);
-        vulnerability = Math.max(0, Math.min(1, sampleDistribution(node.fairInputs.vulnerability, rng)));
+        vulnerability = Math.max(
+          0,
+          Math.min(1, sampleDistribution(node.fairInputs.vulnerability, rng)),
+        );
         lef = tef * vulnerability;
       } else {
         lef = sampleDistribution(node.fairInputs.lef, rng);
@@ -269,9 +272,16 @@ export function validateScenario(
       }
       if (node.fairInputs.tef && node.fairInputs.vulnerability) {
         errors.push(...validateDistributionParams(node.fairInputs.tef, `'${node.label}' (TEF)`));
-        errors.push(...validateDistributionParams(node.fairInputs.vulnerability, `'${node.label}' (Vulnerability)`));
+        errors.push(
+          ...validateDistributionParams(
+            node.fairInputs.vulnerability,
+            `'${node.label}' (Vulnerability)`,
+          ),
+        );
       } else if (node.fairInputs.tef || node.fairInputs.vulnerability) {
-        errors.push(`Node '${node.label}': TEF and Vulnerability must both be defined or both omitted`);
+        errors.push(
+          `Node '${node.label}': TEF and Vulnerability must both be defined or both omitted`,
+        );
       } else {
         errors.push(...validateDistributionParams(node.fairInputs.lef, `'${node.label}' (LEF)`));
       }

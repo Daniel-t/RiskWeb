@@ -1,7 +1,7 @@
 ---
 id: SPEC-SCENARIO-COMPARISON
 title: Scenario Comparison Specification
-status: draft
+status: approved
 assigned: analyst
 epic: E3.7
 depends_on: [SPEC-FAIR-SIMPLIFIED, SPEC-LOSS-EXCEEDANCE]
@@ -52,7 +52,7 @@ Comparison uses stored results only. It does NOT re-run simulations. This means:
 
 - Comparison is instant (no computation delay).
 - Results may have been generated at different times with different configs (iteration count, seed). This is acceptable -- the comparison shows what was last simulated.
-- A warning is shown if scenarios have different iteration counts: "Scenarios were simulated with different iteration counts. Results may not be directly comparable."
+- A warning is shown if any scenario's iteration count differs from the reference by more than 2x: "Scenarios were simulated with different iteration counts. Results may not be directly comparable."
 
 ---
 
@@ -126,6 +126,8 @@ Comparison selections are ephemeral -- they live only in the UI state (Zustand s
 
 ### 4.2 Store
 
+Comparison state lives in a **new standalone Zustand store** (`useComparisonStore`), separate from `simulationStore`, to keep concerns isolated. This store is ephemeral — never persisted to IndexedDB.
+
 ```typescript
 interface ComparisonState {
   selectedScenarioIds: string[];  // 0-4 scenario IDs
@@ -143,6 +145,8 @@ When comparison is active, the store loads full `Scenario` objects (with results
 ## 5. Scenario Picker UI
 
 ### 5.1 Layout
+
+> **See also:** `context/ux/spec-phase3-wireframes.md §4` for detailed visual layout and interaction design.
 
 A modal or slide-over panel showing the saved scenario list:
 
@@ -234,3 +238,20 @@ Guard against division by zero: if `reference_metric == 0`, show "N/A" for perce
 - **Diff of scenario inputs:** Showing which inputs differ between scenarios (e.g., "Scenario B has 2 extra controls"). Useful but adds complexity -- deferred.
 - **Merged/combined scenarios:** No aggregation of multiple scenarios into a portfolio view. Deferred.
 - **Export comparison as PDF/image:** Deferred to Phase 4.
+
+---
+
+## 10. Acceptance Criteria
+
+- [ ] User can select 2-4 saved, simulated scenarios for comparison from a picker UI
+- [ ] First selected scenario is the reference; user can change reference designation
+- [ ] Summary stats table shows Mean, StdDev, P10, P50, P90 per scenario with delta columns vs. reference
+- [ ] Delta color coding: green for risk reduction, red for risk increase, gray for < 5% change
+- [ ] Percentage delta shows "N/A" when the reference metric is 0 (division guard)
+- [ ] Overlaid histograms use a shared bin width computed from the combined range of all selected scenarios
+- [ ] Overlaid LEC curves are shown when all selected scenarios have `samples` arrays
+- [ ] Warning banner displayed when any scenario's iteration count differs from reference by > 2x
+- [ ] Comparison state is ephemeral (`useComparisonStore` in Zustand only, not persisted to IndexedDB)
+- [ ] Removing a selected scenario that brings total below 2 closes the comparison view
+- [ ] Unsimulated scenarios appear grayed out in the picker with tooltip "Run simulation first"
+- [ ] Scenarios deleted during active comparison are removed; view closes if < 2 remain

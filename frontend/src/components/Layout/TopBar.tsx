@@ -1,6 +1,35 @@
-import { type ChangeEvent, useState } from 'react';
+import { type ChangeEvent, useCallback, useEffect, useState } from 'react';
 import { useScenarioStore } from '../../store/scenarioStore';
 import { useSimulationStore } from '../../store/simulationStore';
+
+type ThemePref = 'light' | 'system' | 'dark';
+
+function getStoredTheme(): ThemePref {
+  const v = localStorage.getItem('riskweb-theme');
+  if (v === 'light' || v === 'dark') return v;
+  return 'system';
+}
+
+function applyTheme(pref: ThemePref): void {
+  let resolved = pref;
+  if (pref === 'system') {
+    resolved = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  if (resolved === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+  }
+  localStorage.setItem('riskweb-theme', pref);
+}
+
+const themeIcons: Record<ThemePref, string> = {
+  light: '\u2600',
+  system: '\uD83D\uDDA5',
+  dark: '\uD83C\uDF19',
+};
+
+const themeOrder: ThemePref[] = ['light', 'system', 'dark'];
 
 interface TopBarProps {
   onNew: () => void;
@@ -8,6 +37,7 @@ interface TopBarProps {
   onLoad: () => void;
   onExport: () => void;
   onImport: () => void;
+  onCopyJson: () => void;
   onAutoLayout: () => void;
   onCompare: () => void;
   onRun: () => void;
@@ -21,6 +51,7 @@ export function TopBar({
   onLoad,
   onExport,
   onImport,
+  onCopyJson,
   onAutoLayout,
   onCompare,
   onRun,
@@ -30,6 +61,21 @@ export function TopBar({
   const { name, setName } = useScenarioStore();
   const { isRunning, progress } = useSimulationStore();
   const [editing, setEditing] = useState(false);
+  const [themePref, setThemePref] = useState<ThemePref>(getStoredTheme);
+
+  const cycleTheme = useCallback(() => {
+    const next = themeOrder[(themeOrder.indexOf(themePref) + 1) % themeOrder.length];
+    setThemePref(next);
+    applyTheme(next);
+  }, [themePref]);
+
+  useEffect(() => {
+    if (themePref !== 'system') return;
+    const mq = matchMedia('(prefers-color-scheme: dark)');
+    const handler = () => applyTheme('system');
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, [themePref]);
 
   const handleNameBlur = () => setEditing(false);
   const handleNameKeyDown = (e: React.KeyboardEvent) => {
@@ -73,11 +119,27 @@ export function TopBar({
           <button className="btn btn-secondary" onClick={onLoad}>
             Load
           </button>
-          <button className="btn btn-secondary" onClick={onExport} title="Export scenario to JSON file">
+          <button
+            className="btn btn-secondary"
+            onClick={onExport}
+            title="Export scenario to JSON file"
+          >
             Export
           </button>
-          <button className="btn btn-secondary" onClick={onImport} title="Import scenario from JSON file">
+          <button
+            className="btn btn-secondary"
+            onClick={onImport}
+            title="Import scenario from JSON file"
+          >
             Import
+          </button>
+          <button
+            className="btn btn-secondary"
+            onClick={onCopyJson}
+            title="Copy scenario JSON to clipboard"
+            style={{ padding: '0 10px' }}
+          >
+            &#128203;
           </button>
           <button className="btn btn-secondary" onClick={onAutoLayout}>
             Auto Layout
@@ -99,6 +161,14 @@ export function TopBar({
               Run Simulation
             </button>
           )}
+          <button
+            className="btn btn-secondary"
+            onClick={cycleTheme}
+            title={`Theme: ${themePref}`}
+            style={{ padding: '0 10px', fontSize: 16 }}
+          >
+            {themeIcons[themePref]}
+          </button>
         </div>
       </div>
 
@@ -167,7 +237,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   progressTrack: {
     height: 4,
-    background: '#e2e8f0',
+    background: 'var(--border-panel)',
     width: '100%',
   },
   progressFill: {

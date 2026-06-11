@@ -44,19 +44,15 @@ export function ComparisonView() {
         flexDirection: 'column',
       }}
     >
-      <ComparisonHeader
-        scenarios={ordered}
-        referenceId={referenceId}
-        onExit={clearComparison}
-      />
+      <ComparisonHeader scenarios={ordered} referenceId={referenceId} onExit={clearComparison} />
 
       {showIterationWarning && (
         <div
           style={{
-            background: '#fef3c7',
+            background: 'var(--badge-detective-bg)',
             padding: '6px 16px',
             fontSize: 12,
-            color: '#92400e',
+            color: 'var(--badge-detective-text)',
           }}
         >
           Scenarios were simulated with different iteration counts. Results may not be directly
@@ -75,11 +71,7 @@ export function ComparisonView() {
           overflow: 'hidden',
         }}
       >
-        <ComparisonStatsTable
-          scenarios={ordered}
-          referenceId={referenceId}
-          colors={colors}
-        />
+        <ComparisonStatsTable scenarios={ordered} referenceId={referenceId} colors={colors} />
 
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
           <div style={{ display: 'flex', gap: 2, marginBottom: 8 }}>
@@ -107,11 +99,7 @@ export function ComparisonView() {
           {chartMode === 'histogram' ? (
             <ComparisonHistogram scenarios={ordered} colors={colors} />
           ) : (
-            <ComparisonExceedance
-              scenarios={ordered}
-              colors={colors}
-              referenceId={referenceId}
-            />
+            <ComparisonExceedance scenarios={ordered} colors={colors} referenceId={referenceId} />
           )}
         </div>
       </div>

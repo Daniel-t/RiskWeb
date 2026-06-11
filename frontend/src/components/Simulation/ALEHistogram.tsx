@@ -89,7 +89,7 @@ export function ALEHistogram({
         .attr('y', (d) => y(d.length))
         .attr('width', (d) => Math.max(0, x(d.x1 ?? 0) - x(d.x0 ?? 0) - 1))
         .attr('height', (d) => innerH - y(d.length))
-        .attr('fill', '#64748b')
+        .style('fill', 'var(--chart-bar-baseline)')
         .attr('opacity', 0.5)
         .attr('rx', 1);
 
@@ -102,7 +102,7 @@ export function ALEHistogram({
         .attr('y', (d) => y(d.length))
         .attr('width', (d) => Math.max(0, x(d.x1 ?? 0) - x(d.x0 ?? 0) - 1))
         .attr('height', (d) => innerH - y(d.length))
-        .attr('fill', '#3b82f6')
+        .style('fill', 'var(--chart-bar-primary)')
         .attr('opacity', 0.7)
         .attr('rx', 1);
 
@@ -125,7 +125,7 @@ export function ALEHistogram({
         .attr('y', innerH + 34)
         .attr('text-anchor', 'middle')
         .style('font-size', '12px')
-        .style('fill', '#94a3b8')
+        .style('fill', 'var(--text-muted)')
         .text('ALE ($)');
 
       // Percentile lines (controlled only)
@@ -137,7 +137,7 @@ export function ALEHistogram({
         .append('rect')
         .attr('width', 12)
         .attr('height', 12)
-        .attr('fill', '#64748b')
+        .style('fill', 'var(--chart-bar-baseline)')
         .attr('opacity', 0.5);
       legend
         .append('text')
@@ -151,7 +151,7 @@ export function ALEHistogram({
         .attr('y', 18)
         .attr('width', 12)
         .attr('height', 12)
-        .attr('fill', '#3b82f6')
+        .style('fill', 'var(--chart-bar-primary)')
         .attr('opacity', 0.7);
       legend
         .append('text')
@@ -176,7 +176,7 @@ export function ALEHistogram({
         .attr('y', (d) => y(d.length))
         .attr('width', (d) => Math.max(0, x(d.x1 ?? 0) - x(d.x0 ?? 0) - 1))
         .attr('height', (d) => innerH - y(d.length))
-        .attr('fill', '#3b82f6')
+        .style('fill', 'var(--chart-bar-primary)')
         .attr('rx', 1);
 
       // Axes
@@ -198,7 +198,7 @@ export function ALEHistogram({
         .attr('y', innerH + 34)
         .attr('text-anchor', 'middle')
         .style('font-size', '12px')
-        .style('fill', '#94a3b8')
+        .style('fill', 'var(--text-muted)')
         .text('ALE ($)');
 
       // Percentile lines
@@ -232,9 +232,9 @@ function drawPercentileLines(
   percentiles: Record<number, number>,
 ) {
   const lines = [
-    { key: 0.1, label: 'P10', color: '#f59e0b' },
-    { key: 0.5, label: 'P50', color: '#3b82f6' },
-    { key: 0.9, label: 'P90', color: '#ef4444' },
+    { key: 0.1, label: 'P10', color: 'var(--warning)' },
+    { key: 0.5, label: 'P50', color: 'var(--primary)' },
+    { key: 0.9, label: 'P90', color: 'var(--danger)' },
   ];
 
   for (const p of lines) {
@@ -247,7 +247,7 @@ function drawPercentileLines(
       .attr('x2', xPos)
       .attr('y1', 0)
       .attr('y2', innerH)
-      .attr('stroke', p.color)
+      .style('stroke', p.color)
       .attr('stroke-width', 1.5)
       .attr('stroke-dasharray', '4,3');
 

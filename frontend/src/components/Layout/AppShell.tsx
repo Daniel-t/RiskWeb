@@ -8,7 +8,13 @@ interface AppShellProps {
   resultsDrawer: ReactNode;
 }
 
-export function AppShell({ topBar, leftSidebar, canvas, rightSidebar, resultsDrawer }: AppShellProps) {
+export function AppShell({
+  topBar,
+  leftSidebar,
+  canvas,
+  rightSidebar,
+  resultsDrawer,
+}: AppShellProps) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {topBar}

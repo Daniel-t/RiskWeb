@@ -8,7 +8,11 @@ interface LeftSidebarTabsProps {
   onOpenCatalog: () => void;
 }
 
-export function LeftSidebarTabs({ onCreateControl, onEditControl, onOpenCatalog }: LeftSidebarTabsProps) {
+export function LeftSidebarTabs({
+  onCreateControl,
+  onEditControl,
+  onOpenCatalog,
+}: LeftSidebarTabsProps) {
   const [activeTab, setActiveTab] = useState<'nodes' | 'controls'>('nodes');
 
   return (
@@ -26,7 +30,8 @@ export function LeftSidebarTabs({ onCreateControl, onEditControl, onOpenCatalog 
             flex: 1,
             padding: '8px 0',
             border: 'none',
-            borderBottom: activeTab === 'nodes' ? '2px solid var(--primary)' : '2px solid transparent',
+            borderBottom:
+              activeTab === 'nodes' ? '2px solid var(--primary)' : '2px solid transparent',
             background: 'none',
             fontSize: 12,
             fontWeight: activeTab === 'nodes' ? 600 : 400,
@@ -42,7 +47,8 @@ export function LeftSidebarTabs({ onCreateControl, onEditControl, onOpenCatalog 
             flex: 1,
             padding: '8px 0',
             border: 'none',
-            borderBottom: activeTab === 'controls' ? '2px solid var(--primary)' : '2px solid transparent',
+            borderBottom:
+              activeTab === 'controls' ? '2px solid var(--primary)' : '2px solid transparent',
             background: 'none',
             fontSize: 12,
             fontWeight: activeTab === 'controls' ? 600 : 400,

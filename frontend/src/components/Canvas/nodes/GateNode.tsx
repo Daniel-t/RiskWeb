@@ -7,8 +7,8 @@ export function GateNode({ data, selected }: NodeProps) {
   const isAnd = nodeData.nodeType === 'and';
   const typeLabel = isAnd ? 'AND' : 'OR';
   const fill = isAnd ? 'var(--node-and)' : 'var(--node-or)';
-  const borderColor = isAnd ? '#93c5fd' : '#fdba74';
-  const typeColor = isAnd ? '#3b82f6' : '#ea580c';
+  const borderColor = isAnd ? 'var(--node-and-border)' : 'var(--node-or-border)';
+  const typeColor = isAnd ? 'var(--node-and-text)' : 'var(--node-or-text)';
   const borderRadius = isAnd ? 2 : 12;
 
   return (
@@ -23,7 +23,7 @@ export function GateNode({ data, selected }: NodeProps) {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        boxShadow: selected ? '0 0 0 3px rgba(59, 130, 246, 0.3)' : 'none',
+        boxShadow: selected ? '0 0 0 3px var(--selection-ring)' : 'none',
         position: 'relative',
         cursor: 'pointer',
         gap: 1,
@@ -62,6 +62,6 @@ export function GateNode({ data, selected }: NodeProps) {
 const handleStyle: React.CSSProperties = {
   width: 10,
   height: 10,
-  background: '#94a3b8',
-  border: '2px solid white',
+  background: 'var(--node-handle)',
+  border: '2px solid var(--node-handle-border)',
 };

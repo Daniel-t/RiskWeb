@@ -62,8 +62,7 @@ export const useScenarioStore = create<ScenarioStore>((set) => ({
     })),
   markClean: () => set((state) => ({ isDirty: false, savedName: state.name })),
   markDirty: () => set({ isDirty: true }),
-  toggleLeftSidebar: () =>
-    set((state) => ({ leftSidebarCollapsed: !state.leftSidebarCollapsed })),
+  toggleLeftSidebar: () => set((state) => ({ leftSidebarCollapsed: !state.leftSidebarCollapsed })),
   toggleRightSidebar: () =>
     set((state) => ({ rightSidebarCollapsed: !state.rightSidebarCollapsed })),
   toggleResultsDrawer: () =>

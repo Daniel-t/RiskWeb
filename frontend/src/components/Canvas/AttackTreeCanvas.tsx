@@ -75,7 +75,6 @@ export function AttackTreeCanvas() {
         addNode(type, position);
         return;
       }
-
     },
     [rfInstance, addNode],
   );
@@ -204,7 +203,7 @@ export function AttackTreeCanvas() {
         deleteKeyCode={null}
         selectionKeyCode={null}
       >
-        <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#d0d5dd" />
+        <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="var(--canvas-dots)" />
         <Controls position="top-right" />
       </ReactFlow>
 
@@ -235,7 +234,6 @@ export function AttackTreeCanvas() {
           Drag nodes from the palette to start building your attack tree
         </div>
       )}
-
     </div>
   );
 }

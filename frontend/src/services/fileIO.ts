@@ -12,13 +12,18 @@ interface ScenarioExport extends Scenario {
   _exportedControls?: Control[];
 }
 
-export function exportScenarioToFile(
+const MAX_IMPORT_SIZE = 10 * 1024 * 1024; // 10 MB
+
+export function sanitizeFilename(name: string): string {
+  return name.replace(/[^a-z0-9_-]/gi, '_').slice(0, 100);
+}
+
+export function buildExportPayload(
   scenario: Scenario,
   getControl: (id: string) => Control | undefined,
-): void {
+): ScenarioExport {
   const exportData: ScenarioExport = { ...scenario };
 
-  // Gather referenced controls for portability
   const controlIds = new Set((scenario.controlAssignments ?? []).map((a) => a.controlId));
   if (controlIds.size > 0) {
     const controls: Control[] = [];
@@ -31,12 +36,48 @@ export function exportScenarioToFile(
     }
   }
 
+  return exportData;
+}
+
+export function parseAndValidateImport(jsonString: string): ImportResult {
+  if (jsonString.length > MAX_IMPORT_SIZE) {
+    throw new Error(
+      `Import too large (${(jsonString.length / 1024 / 1024).toFixed(1)} MB). Maximum is 10 MB.`,
+    );
+  }
+
+  const data = JSON.parse(jsonString);
+
+  const exportedControls: Control[] = Array.isArray(data._exportedControls)
+    ? data._exportedControls.filter(isValidControl)
+    : [];
+  delete data._exportedControls;
+
+  const result = validateScenario(data);
+  if (!result.valid) {
+    throw new Error('Invalid scenario file:\n' + result.errors.join('\n'));
+  }
+
+  return {
+    scenario: result.scenario!,
+    importedControls: exportedControls,
+    skippedControls: 0,
+    warnings: result.warnings,
+  };
+}
+
+export function exportScenarioToFile(
+  scenario: Scenario,
+  getControl: (id: string) => Control | undefined,
+): void {
+  const exportData = buildExportPayload(scenario, getControl);
+
   const json = JSON.stringify(exportData, null, 2);
   const blob = new Blob([json], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `${scenario.name.replace(/[^a-z0-9_-]/gi, '_').slice(0, 100)}.json`;
+  a.download = `${sanitizeFilename(scenario.name)}.json`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -53,7 +94,6 @@ export function importScenarioFromFile(): Promise<ImportResult | null> {
         return;
       }
       try {
-        const MAX_IMPORT_SIZE = 10 * 1024 * 1024; // 10 MB
         if (file.size > MAX_IMPORT_SIZE) {
           throw new Error(
             `File too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum is 10 MB.`,
@@ -61,25 +101,7 @@ export function importScenarioFromFile(): Promise<ImportResult | null> {
         }
 
         const text = await file.text();
-        const data = JSON.parse(text);
-
-        // Extract _exportedControls before validation
-        const exportedControls: Control[] = Array.isArray(data._exportedControls)
-          ? data._exportedControls.filter(isValidControl)
-          : [];
-        delete data._exportedControls;
-
-        const result = validateScenario(data);
-        if (!result.valid) {
-          throw new Error('Invalid scenario file:\n' + result.errors.join('\n'));
-        }
-
-        resolve({
-          scenario: result.scenario!,
-          importedControls: exportedControls,
-          skippedControls: 0, // Caller determines how many are skipped
-          warnings: result.warnings,
-        });
+        resolve(parseAndValidateImport(text));
       } catch (e) {
         alert(e instanceof Error ? e.message : 'Failed to read file');
         resolve(null);

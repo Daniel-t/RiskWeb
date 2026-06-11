@@ -22,7 +22,7 @@ export function SaveConfirmDialog({
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(0,0,0,0.3)',
+        background: 'var(--bg-overlay)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -32,12 +32,12 @@ export function SaveConfirmDialog({
     >
       <div
         style={{
-          background: 'white',
+          background: 'var(--bg-popover)',
           borderRadius: 8,
           padding: 24,
           maxWidth: 400,
           width: '90%',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
+          boxShadow: '0 8px 32px var(--bg-overlay)',
         }}
         onClick={(e) => e.stopPropagation()}
       >

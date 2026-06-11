@@ -32,12 +32,22 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
     return;
   }
 
+  // F-03: Sensitivity analysis with wall-clock timeout (120s)
   if (e.data.type === 'sensitivity') {
     cancelled = false;
     const { sensitivityType, scenario, controls, seed } = e.data;
     const engine = sensitivityType === 'controlToggle' ? runControlToggle : runOATSweep;
+    const sensitivityStart = performance.now();
     const result = engine(scenario, controls, seed, (completed, total) => {
       if (cancelled) return;
+      if (performance.now() - sensitivityStart > 120_000) {
+        cancelled = true;
+        self.postMessage({
+          type: 'error',
+          errors: ['Sensitivity analysis timed out after 120 seconds'],
+        });
+        return;
+      }
       self.postMessage({
         type: 'sensitivityProgress',
         percent: Math.round((completed / total) * 100),
@@ -171,7 +181,7 @@ function runSimulation(
   let excessiveReductionWarned = false;
 
   for (let k = 0; k < iterations; k++) {
-    // Check cancellation and wall-clock timeout
+    // F-03: Check cancellation and wall-clock timeout (120s)
     if (k % progressInterval === 0) {
       if (cancelled) return null;
       if (performance.now() - startTime > 120_000) {
@@ -258,7 +268,8 @@ function runSimulation(
     perNode[id] = {
       meanLEF: stats.mean,
       meanTEF: tefs.length > 0 ? tefs.reduce((a, b) => a + b, 0) / tefs.length : undefined,
-      meanVulnerability: vulns.length > 0 ? vulns.reduce((a, b) => a + b, 0) / vulns.length : undefined,
+      meanVulnerability:
+        vulns.length > 0 ? vulns.reduce((a, b) => a + b, 0) / vulns.length : undefined,
       percentiles: stats.percentiles,
     };
   }

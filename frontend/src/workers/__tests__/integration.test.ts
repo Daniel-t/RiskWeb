@@ -1,13 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { topologicalSort, evaluateTree } from '../fairEngine';
 import { mulberry32 } from '../prng';
-import type {
-  AttackTreeNode,
-  Edge,
-  Distribution,
-  Control,
-  ControlAssignment,
-} from '@shared/index';
+import type { AttackTreeNode, Edge, Distribution, Control, ControlAssignment } from '@shared/index';
 
 // ---------- helpers ----------
 
@@ -105,10 +99,7 @@ describe('integration: controls end-to-end', () => {
     // OR: 1 - (1-0.125)(1-0.3) = 1 - 0.6125 = 0.3875
     const c1 = makeControl('c1', 0.5);
     const c2 = makeControl('c2', 0.5);
-    const assignments = [
-      makeAssignment('a1', 'c1', 'A'),
-      makeAssignment('a2', 'c2', 'A'),
-    ];
+    const assignments = [makeAssignment('a1', 'c1', 'A'), makeAssignment('a2', 'c2', 'A')];
     const nodeAssignments = new Map([['A', assignments]]);
     const controlMap = new Map([
       ['c1', c1],

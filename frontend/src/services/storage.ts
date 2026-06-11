@@ -1,9 +1,4 @@
-import type {
-  Scenario,
-  ScenarioMeta,
-  Control,
-  ControlMeta,
-} from '@shared/index';
+import type { Scenario, ScenarioMeta, Control, ControlMeta } from '@shared/index';
 
 // --- Storage Port Interface ---
 // Allows swapping IndexedDB for an API backend in the future.
@@ -106,6 +101,7 @@ export const storage: StoragePort = {
         modified: s.metadata.modified,
         meanALE: s.results?.summary.mean,
         p90: s.results?.summary.percentiles[0.9],
+        hasSamples: (s.results?.samples?.length ?? 0) > 0,
       }))
       .sort((a, b) => b.modified.localeCompare(a.modified));
   },

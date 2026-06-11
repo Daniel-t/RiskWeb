@@ -67,14 +67,16 @@ export function ComparisonHistogram({ scenarios, colors }: ComparisonHistogramPr
     // Axes
     g.append('g')
       .attr('transform', `translate(0,${innerHeight})`)
-      .call(d3.axisBottom(x).ticks(5).tickFormat((d) => formatCurrencyAxis(d as number)))
+      .call(
+        d3
+          .axisBottom(x)
+          .ticks(5)
+          .tickFormat((d) => formatCurrencyAxis(d as number)),
+      )
       .selectAll('text')
       .attr('font-size', 10);
 
-    g.append('g')
-      .call(d3.axisLeft(y).ticks(5))
-      .selectAll('text')
-      .attr('font-size', 10);
+    g.append('g').call(d3.axisLeft(y).ticks(5)).selectAll('text').attr('font-size', 10);
 
     // Legend
     const legend = g.append('g').attr('transform', `translate(${innerWidth - 120}, 4)`);
@@ -92,7 +94,7 @@ export function ComparisonHistogram({ scenarios, colors }: ComparisonHistogramPr
         .attr('x', 16)
         .attr('y', i * 16 + 9)
         .attr('font-size', 10)
-        .attr('fill', '#64748b')
+        .style('fill', 'var(--chart-axis-text)')
         .text(s.name.length > 15 ? s.name.slice(0, 13) + '..' : s.name);
     });
   }, [scenarios, colors]);

@@ -74,9 +74,7 @@ function betaQuantile(p: number, a: number, b: number): number {
 
 function betaPDF(x: number, a: number, b: number): number {
   if (x <= 0 || x >= 1) return 0;
-  return Math.exp(
-    (a - 1) * Math.log(x) + (b - 1) * Math.log(1 - x) - logBeta(a, b),
-  );
+  return Math.exp((a - 1) * Math.log(x) + (b - 1) * Math.log(1 - x) - logBeta(a, b));
 }
 
 function betaCDF(x: number, a: number, b: number): number {
@@ -93,9 +91,9 @@ function logGamma(x: number): number {
   // Lanczos approximation
   const g = 7;
   const c = [
-    0.99999999999980993, 676.5203681218851, -1259.1392167224028,
-    771.32342877765313, -176.61502916214059, 12.507343278686905,
-    -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7,
+    0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313,
+    -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6,
+    1.5056327351493116e-7,
   ];
   if (x < 0.5) {
     return Math.log(Math.PI / Math.sin(Math.PI * x)) - logGamma(1 - x);
@@ -302,7 +300,13 @@ function collectInputDescriptors(scenario: Scenario, controls: Control[]): Input
           ...s,
           nodes: s.nodes.map((n) =>
             n.id === node.id
-              ? { ...n, fairInputs: { ...n.fairInputs!, tef: { type: 'constant' as const, params: { value } } } }
+              ? {
+                  ...n,
+                  fairInputs: {
+                    ...n.fairInputs!,
+                    tef: { type: 'constant' as const, params: { value } },
+                  },
+                }
               : n,
           ),
         }),
@@ -318,7 +322,13 @@ function collectInputDescriptors(scenario: Scenario, controls: Control[]): Input
           ...s,
           nodes: s.nodes.map((n) =>
             n.id === node.id
-              ? { ...n, fairInputs: { ...n.fairInputs!, vulnerability: { type: 'constant' as const, params: { value } } } }
+              ? {
+                  ...n,
+                  fairInputs: {
+                    ...n.fairInputs!,
+                    vulnerability: { type: 'constant' as const, params: { value } },
+                  },
+                }
               : n,
           ),
         }),
@@ -336,7 +346,13 @@ function collectInputDescriptors(scenario: Scenario, controls: Control[]): Input
           ...s,
           nodes: s.nodes.map((n) =>
             n.id === node.id
-              ? { ...n, fairInputs: { ...n.fairInputs!, lef: { type: 'constant' as const, params: { value } } } }
+              ? {
+                  ...n,
+                  fairInputs: {
+                    ...n.fairInputs!,
+                    lef: { type: 'constant' as const, params: { value } },
+                  },
+                }
               : n,
           ),
         }),
@@ -367,6 +383,25 @@ function collectInputDescriptors(scenario: Scenario, controls: Control[]): Input
         ),
       }),
     });
+    if (ctrl.lmReduction) {
+      const lmRed = ctrl.lmReduction;
+      descriptors.push({
+        id: `${ctrl.id}-lmRed`,
+        label: `${ctrl.name} > LM Reduction`,
+        category: 'lmReduction',
+        getP10: () => getPercentile(lmRed, 0.1),
+        getP90: () => getPercentile(lmRed, 0.9),
+        getExpected: () => getExpectedValue(lmRed),
+        apply: (s, value) => ({
+          ...s,
+          controlAssignments: (s.controlAssignments ?? []).map((a) =>
+            a.controlId === ctrl.id
+              ? { ...a, lmReductionOverride: { type: 'constant' as const, params: { value } } }
+              : a,
+          ),
+        }),
+      });
+    }
   }
 
   return descriptors;
@@ -377,7 +412,10 @@ function fixAllInputsAtExpected(scenario: Scenario, controls: Control[]): Scenar
 
   // Fix LM
   if (s.lossMagnitude) {
-    s = { ...s, lossMagnitude: { type: 'constant', params: { value: getExpectedValue(s.lossMagnitude) } } };
+    s = {
+      ...s,
+      lossMagnitude: { type: 'constant', params: { value: getExpectedValue(s.lossMagnitude) } },
+    };
   }
 
   // Fix all leaf inputs
@@ -390,8 +428,14 @@ function fixAllInputsAtExpected(scenario: Scenario, controls: Control[]): Scenar
           ...n,
           fairInputs: {
             lef: n.fairInputs.lef,
-            tef: { type: 'constant' as const, params: { value: getExpectedValue(n.fairInputs.tef) } },
-            vulnerability: { type: 'constant' as const, params: { value: getExpectedValue(n.fairInputs.vulnerability) } },
+            tef: {
+              type: 'constant' as const,
+              params: { value: getExpectedValue(n.fairInputs.tef) },
+            },
+            vulnerability: {
+              type: 'constant' as const,
+              params: { value: getExpectedValue(n.fairInputs.vulnerability) },
+            },
           },
         };
       }
@@ -412,13 +456,20 @@ function fixAllInputsAtExpected(scenario: Scenario, controls: Control[]): Scenar
     controlAssignments: (s.controlAssignments ?? []).map((a) => {
       const ctrl = controlMap.get(a.controlId);
       if (!ctrl) return a;
-      return {
+      const fixed: typeof a = {
         ...a,
         lefReductionOverride: {
           type: 'constant' as const,
           params: { value: getExpectedValue(a.lefReductionOverride ?? ctrl.lefReduction) },
         },
       };
+      if (ctrl.lmReduction) {
+        fixed.lmReductionOverride = {
+          type: 'constant' as const,
+          params: { value: getExpectedValue(a.lmReductionOverride ?? ctrl.lmReduction) },
+        };
+      }
+      return fixed;
     }),
   };
 

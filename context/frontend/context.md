@@ -54,7 +54,7 @@ All @frontend tasks are reviewed. Expect these reviewers:
 
 ## Current Focus
 
-Wave D complete. TASK-220 (save/load with controlAssignments) and TASK-221 (baseline vs. controlled comparison view) both done 2026-05-21. Awaiting TASK-223 security review.
+Phase 4 Wave B complete 2026-05-27. All 5 tasks done (TASK-410, 411, 412, 414, 415). Wave C (UI) ready: TASK-420 (resilient exceedance UI), TASK-421 (clipboard), TASK-422 (CSV button), TASK-424 (theme toggle), TASK-425 (token sweep).
 
 ## Decisions Log
 

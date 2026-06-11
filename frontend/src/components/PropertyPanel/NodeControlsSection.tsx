@@ -9,9 +9,9 @@ interface NodeControlsSectionProps {
 }
 
 const categoryColors: Record<ControlCategory, { bg: string; text: string }> = {
-  preventive: { bg: '#dbeafe', text: '#1d4ed8' },
-  detective: { bg: '#fef3c7', text: '#92400e' },
-  corrective: { bg: '#dcfce7', text: '#166534' },
+  preventive: { bg: 'var(--badge-preventive-bg)', text: 'var(--badge-preventive-text)' },
+  detective: { bg: 'var(--badge-detective-bg)', text: 'var(--badge-detective-text)' },
+  corrective: { bg: 'var(--badge-corrective-bg)', text: 'var(--badge-corrective-text)' },
 };
 
 export function NodeControlsSection({ nodeId }: NodeControlsSectionProps) {
@@ -87,7 +87,9 @@ export function NodeControlsSection({ nodeId }: NodeControlsSectionProps) {
         <>
           {nodeAssignments.map((a) => {
             const ctrl = controlDetails.get(a.controlId);
-            const cat = ctrl ? categoryColors[ctrl.category] : { bg: '#f1f5f9', text: '#64748b' };
+            const cat = ctrl
+              ? categoryColors[ctrl.category]
+              : { bg: 'var(--badge-mixed-bg)', text: 'var(--badge-mixed-text)' };
             const dist = a.lefReductionOverride ?? ctrl?.lefReduction;
             let effectText = '?';
             if (dist) {
@@ -107,7 +109,7 @@ export function NodeControlsSection({ nodeId }: NodeControlsSectionProps) {
                     alignItems: 'center',
                     gap: 6,
                     padding: '6px 8px',
-                    border: '1px solid #e2e8f0',
+                    border: '1px solid var(--border-panel)',
                     borderRadius: isExpanded ? '6px 6px 0 0' : 6,
                     opacity: a.enabled ? 1 : 0.6,
                   }}
@@ -192,11 +194,11 @@ export function NodeControlsSection({ nodeId }: NodeControlsSectionProps) {
                 {isExpanded && (
                   <div
                     style={{
-                      border: '1px solid #e2e8f0',
+                      border: '1px solid var(--border-panel)',
                       borderTop: 'none',
                       borderRadius: '0 0 6px 6px',
                       padding: '8px',
-                      background: '#f8fafc',
+                      background: 'var(--bg-surface)',
                       display: 'flex',
                       flexDirection: 'column',
                       gap: 8,
@@ -247,7 +249,14 @@ export function NodeControlsSection({ nodeId }: NodeControlsSectionProps) {
 
           {/* Combined reduction bar */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <div style={{ height: 6, borderRadius: 3, background: '#e2e8f0', overflow: 'hidden' }}>
+            <div
+              style={{
+                height: 6,
+                borderRadius: 3,
+                background: 'var(--border-panel)',
+                overflow: 'hidden',
+              }}
+            >
               <div
                 style={{
                   height: '100%',

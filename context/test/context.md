@@ -56,8 +56,15 @@ QA/Test engineer for RiskWeb. Designs test strategies, writes and maintains auto
 
 ## Current Focus
 
-Newly created persona. No tasks assigned yet. Awaiting initial task assignment from @orchestrator.
+Phase 4: TASK-401 complete. Next: TASK-432 (test coverage for Phase 4 features) pending Wave B/C implementation.
+
+## Completed
+
+- **TASK-401**: Verify defect/security fixes -- DONE (2026-05-27). Report at `context/test/verification-report-task401.md`.
+  - All 8 fixes verified PASS (F-01 through F-05, DEFECT-SAVE A/B, Errata E1)
+  - 106 automated tests pass (Vitest 4.1.6)
+  - Identified test coverage gaps for TASK-432: fileIO.ts, SaveConfirmDialog, drop handler, worker timeout
 
 ## Decisions Log
 
-(none yet)
+- **Code-trace verification method** (2026-05-27): For fixes without dedicated test coverage, manual code trace with line references is used alongside automated test suite run. Dedicated tests to be added in TASK-432.

@@ -18,7 +18,7 @@ export function ValidationBadge({ status }: ValidationBadgeProps) {
           alignItems: 'center',
           justifyContent: 'center',
           fontSize: 11,
-          color: 'white',
+          color: 'var(--text-on-primary)',
           fontWeight: 700,
         }}
       >
@@ -40,7 +40,7 @@ export function ValidationBadge({ status }: ValidationBadgeProps) {
         alignItems: 'center',
         justifyContent: 'center',
         fontSize: 12,
-        color: 'white',
+        color: 'var(--text-on-primary)',
         fontWeight: 700,
         borderRadius: 2,
         clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',

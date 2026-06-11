@@ -36,11 +36,21 @@ export function FrequencyModeSection({ fairInputs, onUpdate }: FrequencyModeSect
   };
 
   const handleTefChange = (tef: Distribution) => {
-    onUpdate({ ...fairInputs, lef: fairInputs?.lef ?? defaultTEF, tef, vulnerability: fairInputs?.vulnerability ?? defaultVuln });
+    onUpdate({
+      ...fairInputs,
+      lef: fairInputs?.lef ?? defaultTEF,
+      tef,
+      vulnerability: fairInputs?.vulnerability ?? defaultVuln,
+    });
   };
 
   const handleVulnChange = (vulnerability: Distribution) => {
-    onUpdate({ ...fairInputs, lef: fairInputs?.lef ?? defaultTEF, tef: fairInputs?.tef ?? defaultTEF, vulnerability });
+    onUpdate({
+      ...fairInputs,
+      lef: fairInputs?.lef ?? defaultTEF,
+      tef: fairInputs?.tef ?? defaultTEF,
+      vulnerability,
+    });
   };
 
   const toggleToDecomposed = () => {
@@ -66,7 +76,7 @@ export function FrequencyModeSection({ fairInputs, onUpdate }: FrequencyModeSect
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div
           style={{
-            background: '#f8fafc',
+            background: 'var(--bg-surface)',
             border: '1px solid var(--border-panel)',
             borderRadius: 6,
             padding: 12,
@@ -89,6 +99,7 @@ export function FrequencyModeSection({ fairInputs, onUpdate }: FrequencyModeSect
             label="Vulnerability (0-1)"
             value={fairInputs?.vulnerability}
             onChange={handleVulnChange}
+            max={1}
           />
 
           {expectedLEF !== null && (
@@ -119,7 +130,11 @@ export function FrequencyModeSection({ fairInputs, onUpdate }: FrequencyModeSect
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <DistributionInput label="LEF (events/yr)" value={fairInputs?.lef} onChange={handleLefChange} />
+      <DistributionInput
+        label="LEF (events/yr)"
+        value={fairInputs?.lef}
+        onChange={handleLefChange}
+      />
 
       <button
         type="button"

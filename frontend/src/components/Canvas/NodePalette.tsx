@@ -1,9 +1,27 @@
 import type { DragEvent } from 'react';
 
 const nodeTypes = [
-  { type: 'leaf', label: 'Leaf Node', icon: '&#9645;', color: 'var(--node-leaf)', border: '#e2e8f0' },
-  { type: 'and', label: 'AND Gate', icon: '&amp;', color: 'var(--node-and)', border: '#93c5fd' },
-  { type: 'or', label: 'OR Gate', icon: '|', color: 'var(--node-or)', border: '#fdba74' },
+  {
+    type: 'leaf',
+    label: 'Leaf Node',
+    icon: '&#9645;',
+    color: 'var(--node-leaf)',
+    border: 'var(--border-panel)',
+  },
+  {
+    type: 'and',
+    label: 'AND Gate',
+    icon: '&amp;',
+    color: 'var(--node-and)',
+    border: 'var(--node-and-border)',
+  },
+  {
+    type: 'or',
+    label: 'OR Gate',
+    icon: '|',
+    color: 'var(--node-or)',
+    border: 'var(--node-or-border)',
+  },
 ] as const;
 
 export function NodePalette() {
@@ -49,7 +67,7 @@ export function NodePalette() {
                 fontSize: 14,
                 fontWeight: 600,
                 color: 'var(--text-muted)',
-                background: 'white',
+                background: 'var(--bg-popover)',
               }}
             >
               {type === 'and' ? '&' : type === 'or' ? '|' : '\u25A2'}

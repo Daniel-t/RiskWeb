@@ -6,9 +6,15 @@ interface LoadScenarioModalProps {
   open: boolean;
   onClose: () => void;
   onLoad: (id: string) => void;
+  onImportFromClipboard?: () => void;
 }
 
-export function LoadScenarioModal({ open, onClose, onLoad }: LoadScenarioModalProps) {
+export function LoadScenarioModal({
+  open,
+  onClose,
+  onLoad,
+  onImportFromClipboard,
+}: LoadScenarioModalProps) {
   const [scenarios, setScenarios] = useState<ScenarioMeta[]>([]);
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -38,9 +44,7 @@ export function LoadScenarioModal({ open, onClose, onLoad }: LoadScenarioModalPr
 
   if (!open) return null;
 
-  const filtered = scenarios.filter((s) =>
-    s.name.toLowerCase().includes(search.toLowerCase()),
-  );
+  const filtered = scenarios.filter((s) => s.name.toLowerCase().includes(search.toLowerCase()));
 
   const handleDelete = async (id: string, name: string) => {
     if (!window.confirm(`Delete scenario '${name}'?`)) return;
@@ -58,7 +62,7 @@ export function LoadScenarioModal({ open, onClose, onLoad }: LoadScenarioModalPr
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(0,0,0,0.3)',
+        background: 'var(--bg-overlay)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -68,12 +72,12 @@ export function LoadScenarioModal({ open, onClose, onLoad }: LoadScenarioModalPr
     >
       <div
         style={{
-          background: 'white',
+          background: 'var(--bg-popover)',
           borderRadius: 8,
           padding: 24,
           maxWidth: 560,
           width: '90%',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
+          boxShadow: '0 8px 32px var(--bg-overlay)',
           maxHeight: '80vh',
           display: 'flex',
           flexDirection: 'column',
@@ -105,7 +109,11 @@ export function LoadScenarioModal({ open, onClose, onLoad }: LoadScenarioModalPr
           style={{ marginBottom: 12 }}
         />
 
-        {error && <div className="form-error" style={{ marginBottom: 8 }}>{error}</div>}
+        {error && (
+          <div className="form-error" style={{ marginBottom: 8 }}>
+            {error}
+          </div>
+        )}
 
         <div
           style={{
@@ -159,7 +167,7 @@ export function LoadScenarioModal({ open, onClose, onLoad }: LoadScenarioModalPr
                     onClick={() => setSelectedId(s.id)}
                     style={{
                       cursor: 'pointer',
-                      background: selectedId === s.id ? '#eff6ff' : 'transparent',
+                      background: selectedId === s.id ? 'var(--bg-drop-highlight)' : 'transparent',
                       borderBottom: '1px solid var(--border-panel)',
                     }}
                   >
@@ -192,6 +200,16 @@ export function LoadScenarioModal({ open, onClose, onLoad }: LoadScenarioModalPr
         </div>
 
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          {onImportFromClipboard && (
+            <button
+              className="btn btn-secondary"
+              onClick={onImportFromClipboard}
+              title="Import scenario JSON from clipboard"
+              style={{ marginRight: 'auto' }}
+            >
+              Import from Clipboard
+            </button>
+          )}
           <button className="btn btn-secondary" onClick={onClose}>
             Cancel
           </button>

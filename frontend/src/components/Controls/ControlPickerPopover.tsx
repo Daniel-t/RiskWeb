@@ -58,10 +58,10 @@ export function ControlPickerPopover({ nodeId, onClose }: ControlPickerPopoverPr
         left: 0,
         width: 280,
         maxHeight: 300,
-        background: 'white',
+        background: 'var(--bg-popover)',
         border: '1px solid var(--border-panel)',
         borderRadius: 8,
-        boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+        boxShadow: '0 4px 16px var(--bg-overlay)',
         zIndex: 50,
         display: 'flex',
         flexDirection: 'column',
@@ -80,7 +80,9 @@ export function ControlPickerPopover({ nodeId, onClose }: ControlPickerPopoverPr
       </div>
       <div style={{ flex: 1, overflow: 'auto', padding: 4 }}>
         {filtered.length === 0 && (
-          <div style={{ padding: 12, fontSize: 12, color: 'var(--text-muted)', textAlign: 'center' }}>
+          <div
+            style={{ padding: 12, fontSize: 12, color: 'var(--text-muted)', textAlign: 'center' }}
+          >
             No controls available
           </div>
         )}
@@ -101,7 +103,8 @@ export function ControlPickerPopover({ nodeId, onClose }: ControlPickerPopoverPr
                 fontSize: 12,
               }}
               onMouseEnter={(e) => {
-                if (!isAssigned) (e.currentTarget as HTMLElement).style.background = '#f1f5f9';
+                if (!isAssigned)
+                  (e.currentTarget as HTMLElement).style.background = 'var(--bg-surface-hover)';
               }}
               onMouseLeave={(e) => {
                 (e.currentTarget as HTMLElement).style.background = 'transparent';

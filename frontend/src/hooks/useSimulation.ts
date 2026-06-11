@@ -100,11 +100,7 @@ export function useSimulation() {
   );
 
   const runSensitivity = useCallback(
-    (
-      scenario: Scenario,
-      controls: Control[],
-      sensitivityType: 'controlToggle' | 'oatSweep',
-    ) => {
+    (scenario: Scenario, controls: Control[], sensitivityType: 'controlToggle' | 'oatSweep') => {
       // Use a separate worker for sensitivity so it doesn't conflict
       const worker = createWorker();
       setSensitivityRunning(true);

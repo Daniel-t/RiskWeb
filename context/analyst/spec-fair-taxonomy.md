@@ -1,7 +1,7 @@
 ---
 id: SPEC-FAIR-TAXONOMY
 title: FAIR Taxonomy Expansion Specification
-status: draft
+status: approved
 assigned: analyst
 epic: E3.1
 depends_on: [SPEC-FAIR-SIMPLIFIED]
@@ -157,6 +157,8 @@ No schema migration needed. IndexedDB stores full scenario objects; the addition
 
 ## 6. UI Behavior (Guidance for @ux / @frontend)
 
+> **Note:** Detailed UI layout and interaction design is specified in the approved wireframes: `context/ux/spec-phase3-wireframes.md §1`. The guidance below captures analytical intent only.
+
 ### 6.1 Property Panel
 
 When a leaf node is selected, the FAIR inputs section shows:
@@ -218,3 +220,18 @@ Nodes in decomposed mode should show a subtle visual indicator (e.g., a small "T
 - **Per-node Loss Magnitude**: Deferred. LM remains scenario-level.
 - **Primary/Secondary Loss decomposition**: Deferred.
 - **Bayesian updates**: Deferred to a future phase.
+
+---
+
+## 10. Acceptance Criteria
+
+- [ ] `FAIRInputs` has optional `tef?: Distribution` and `vulnerability?: Distribution` fields in `shared/src/index.ts`
+- [ ] Engine computes `lef = tef * vulnerability` when both fields are present; falls back to direct `lef` sampling otherwise
+- [ ] Sampled Vulnerability values are clamped to [0, 1] at runtime
+- [ ] Validation rejects a node with `tef` set but `vulnerability` absent (and vice versa)
+- [ ] `SimulationResult.perNode` entries include `meanTEF` and `meanVulnerability` for decomposed nodes
+- [ ] Existing scenarios (direct LEF only, no `tef`/`vulnerability` fields) load and simulate unchanged (backward compatibility)
+- [ ] JSON export includes `tef`/`vulnerability` when present; JSON import of older scenarios (without these fields) succeeds without errors
+- [ ] Mixed modes within the same tree (some leaves direct, some decomposed) simulate correctly
+- [ ] UI provides a toggle between direct LEF and decomposed TEF x Vulnerability modes per leaf (see wireframes §1)
+- [ ] Canvas displays a visual indicator (e.g., "TEF x V") on decomposed nodes

@@ -46,7 +46,10 @@ export function TornadoChart({ items, baselineALE, mode, topN }: TornadoChartPro
     if (mode === 'controlToggle') {
       // All bars extend right from baseline
       const maxALE = d3.max(displayItems, (d) => d.aleHigh) ?? baselineALE;
-      const x = d3.scaleLinear().domain([0, maxALE * 1.1]).range([0, innerWidth]);
+      const x = d3
+        .scaleLinear()
+        .domain([0, maxALE * 1.1])
+        .range([0, innerWidth]);
 
       // Baseline reference line
       g.append('line')
@@ -54,7 +57,7 @@ export function TornadoChart({ items, baselineALE, mode, topN }: TornadoChartPro
         .attr('x2', x(baselineALE))
         .attr('y1', -8)
         .attr('y2', displayItems.length * (barHeight + barGap))
-        .attr('stroke', '#94a3b8')
+        .style('stroke', 'var(--chart-bar-baseline)')
         .attr('stroke-dasharray', '4,3')
         .attr('stroke-width', 1);
 
@@ -70,7 +73,7 @@ export function TornadoChart({ items, baselineALE, mode, topN }: TornadoChartPro
           .attr('text-anchor', 'end')
           .attr('dominant-baseline', 'central')
           .attr('font-size', 11)
-          .attr('fill', '#334155')
+          .style('fill', 'var(--text-primary)')
           .text(item.label.length > 22 ? item.label.slice(0, 20) + '...' : item.label);
 
         // Bar
@@ -89,12 +92,15 @@ export function TornadoChart({ items, baselineALE, mode, topN }: TornadoChartPro
           .attr('y', y + barHeight / 2)
           .attr('dominant-baseline', 'central')
           .attr('font-size', 10)
-          .attr('fill', '#64748b')
+          .style('fill', 'var(--chart-axis-text)')
           .text(`+${formatCurrencyAxis(item.delta)}`);
       });
 
       // X axis
-      const xAxis = d3.axisBottom(x).ticks(5).tickFormat((d) => formatCurrencyAxis(d as number));
+      const xAxis = d3
+        .axisBottom(x)
+        .ticks(5)
+        .tickFormat((d) => formatCurrencyAxis(d as number));
       g.append('g')
         .attr('transform', `translate(0,${displayItems.length * (barHeight + barGap)})`)
         .call(xAxis)
@@ -106,7 +112,10 @@ export function TornadoChart({ items, baselineALE, mode, topN }: TornadoChartPro
       const minALE = d3.min(allValues) ?? 0;
       const maxALE = d3.max(allValues) ?? 0;
       const padding = (maxALE - minALE) * 0.1 || 1;
-      const x = d3.scaleLinear().domain([minALE - padding, maxALE + padding]).range([0, innerWidth]);
+      const x = d3
+        .scaleLinear()
+        .domain([minALE - padding, maxALE + padding])
+        .range([0, innerWidth]);
 
       // Center line (baseline)
       g.append('line')
@@ -114,7 +123,7 @@ export function TornadoChart({ items, baselineALE, mode, topN }: TornadoChartPro
         .attr('x2', x(baselineALE))
         .attr('y1', -8)
         .attr('y2', displayItems.length * (barHeight + barGap))
-        .attr('stroke', '#94a3b8')
+        .style('stroke', 'var(--chart-bar-baseline)')
         .attr('stroke-dasharray', '4,3')
         .attr('stroke-width', 1);
 
@@ -129,7 +138,7 @@ export function TornadoChart({ items, baselineALE, mode, topN }: TornadoChartPro
           .attr('text-anchor', 'end')
           .attr('dominant-baseline', 'central')
           .attr('font-size', 11)
-          .attr('fill', '#334155')
+          .style('fill', 'var(--text-primary)')
           .text(item.label.length > 22 ? item.label.slice(0, 20) + '...' : item.label);
 
         // Low bar (P10 side, lighter)
@@ -162,12 +171,15 @@ export function TornadoChart({ items, baselineALE, mode, topN }: TornadoChartPro
           .attr('y', y + barHeight / 2)
           .attr('dominant-baseline', 'central')
           .attr('font-size', 10)
-          .attr('fill', '#64748b')
+          .style('fill', 'var(--chart-axis-text)')
           .text(formatCurrencyAxis(Math.abs(item.delta)));
       });
 
       // X axis
-      const xAxis = d3.axisBottom(x).ticks(5).tickFormat((d) => formatCurrencyAxis(d as number));
+      const xAxis = d3
+        .axisBottom(x)
+        .ticks(5)
+        .tickFormat((d) => formatCurrencyAxis(d as number));
       g.append('g')
         .attr('transform', `translate(0,${displayItems.length * (barHeight + barGap)})`)
         .call(xAxis)
@@ -187,7 +199,16 @@ export function TornadoChart({ items, baselineALE, mode, topN }: TornadoChartPro
 
   if (displayItems.length === 0) {
     return (
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
+      <div
+        style={{
+          flex: 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'var(--text-muted)',
+          fontSize: 13,
+        }}
+      >
         No data to display
       </div>
     );

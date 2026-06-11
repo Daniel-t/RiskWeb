@@ -3,9 +3,17 @@ import type { ControlMeta, ControlCategory } from '@shared/index';
 import { useControlStore } from '../../store/controlStore';
 
 const categoryStyles: Record<ControlCategory, { bg: string; text: string; label: string }> = {
-  preventive: { bg: '#dbeafe', text: '#1d4ed8', label: 'P' },
-  detective: { bg: '#fef3c7', text: '#92400e', label: 'D' },
-  corrective: { bg: '#dcfce7', text: '#166534', label: 'C' },
+  preventive: {
+    bg: 'var(--badge-preventive-bg)',
+    text: 'var(--badge-preventive-text)',
+    label: 'P',
+  },
+  detective: { bg: 'var(--badge-detective-bg)', text: 'var(--badge-detective-text)', label: 'D' },
+  corrective: {
+    bg: 'var(--badge-corrective-bg)',
+    text: 'var(--badge-corrective-text)',
+    label: 'C',
+  },
 };
 
 interface ControlCardProps {
@@ -36,9 +44,9 @@ export function ControlCard({ control, onClick, onDoubleClick }: ControlCardProp
       onDoubleClick={onDoubleClick}
       style={{
         padding: '8px 10px',
-        border: '1px solid #e2e8f0',
+        border: '1px solid var(--border-panel)',
         borderRadius: 6,
-        background: 'white',
+        background: 'var(--bg-popover)',
         cursor: 'grab',
         display: 'flex',
         alignItems: 'center',

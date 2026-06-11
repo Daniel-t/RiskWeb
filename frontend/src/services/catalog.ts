@@ -1,4 +1,9 @@
-import type { AttackTechnique, D3fendTechnique, TechniqueMapping, Distribution } from '@shared/index';
+import type {
+  AttackTechnique,
+  D3fendTechnique,
+  TechniqueMapping,
+  Distribution,
+} from '@shared/index';
 import attackCatalogJson from '../../../shared/data/attack-catalog.json';
 import d3fendMappingsJson from '../../../shared/data/d3fend-mappings.json';
 
