@@ -1,0 +1,38 @@
+{
+  "name": "Single leaf with constant inputs",
+  "description": "Deterministic sanity check: constant LEF=3, constant LM=10000, ALE should be exactly 30000",
+  "scenario": {
+    "id": "test-constant",
+    "name": "Constant Test",
+    "nodes": [
+      {
+        "id": "leaf1",
+        "type": "leaf",
+        "label": "Constant Leaf",
+        "position": { "x": 0, "y": 0 },
+        "fairInputs": {
+          "lef": { "type": "constant", "params": { "value": 3 } }
+        }
+      }
+    ],
+    "edges": [],
+    "lossMagnitude": { "type": "constant", "params": { "value": 10000 } },
+    "simulationConfig": {
+      "iterations": 1000,
+      "seed": 42,
+      "confidenceIntervals": [0.1, 0.5, 0.9]
+    },
+    "metadata": { "created": "2026-01-01T00:00:00.000Z", "modified": "2026-01-01T00:00:00.000Z" }
+  },
+  "expected": {
+    "simulation": {
+      "mean": { "min": 30000, "max": 30000 },
+      "percentiles": {
+        "0.5": { "min": 30000, "max": 30000 }
+      },
+      "perNode": {
+        "leaf1": { "meanLEF": { "min": 3, "max": 3 } }
+      }
+    }
+  }
+}

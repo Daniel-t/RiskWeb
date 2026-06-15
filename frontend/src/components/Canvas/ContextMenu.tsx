@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import type { TreeNodeType } from '../../store/treeStore';
 
 export interface ContextMenuState {
   x: number;
@@ -11,7 +12,7 @@ export interface ContextMenuState {
 interface ContextMenuProps {
   menu: ContextMenuState;
   onClose: () => void;
-  onAddNode: (type: 'leaf' | 'and' | 'or') => void;
+  onAddNode: (type: TreeNodeType) => void;
   onDeleteNode: (id: string) => void;
   onDuplicateNode: (id: string) => void;
   onDeleteEdge: (id: string) => void;
@@ -48,7 +49,9 @@ export function ContextMenu({
 
   if (menu.type === 'canvas') {
     items.push(
-      { label: 'Add Leaf Node', action: () => onAddNode('leaf') },
+      { label: 'Add Outcome', action: () => onAddNode('outcome') },
+      { label: 'Add Threat Event', action: () => onAddNode('event') },
+      { label: 'Add Condition', action: () => onAddNode('condition') },
       { label: 'Add AND Gate', action: () => onAddNode('and') },
       { label: 'Add OR Gate', action: () => onAddNode('or') },
     );

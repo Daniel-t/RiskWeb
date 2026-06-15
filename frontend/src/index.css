@@ -259,6 +259,8 @@ button {
   border-radius: 4px;
   outline: none;
   transition: border-color 0.15s;
+  background: var(--bg-surface);
+  color: var(--text-primary);
 }
 
 .form-input:focus {
@@ -279,7 +281,8 @@ button {
   padding: 0 10px;
   border: 1px solid var(--border-panel);
   border-radius: 4px;
-  background: var(--bg-app);
+  background: var(--bg-surface);
+  color: var(--text-primary);
   outline: none;
   cursor: pointer;
 }

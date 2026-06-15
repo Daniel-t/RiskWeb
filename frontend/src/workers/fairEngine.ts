@@ -8,10 +8,13 @@ import type {
 } from '@shared/index';
 import { sampleDistribution } from './distributions';
 
+export type DomainType = 'frequency' | 'probability';
+
 export interface NodeResult {
-  lef: number;
+  value: number;
+  domain: DomainType;
   tef?: number;
-  vulnerability?: number;
+  lef?: number;
 }
 
 /**
@@ -81,9 +84,41 @@ export function topologicalSort(nodes: AttackTreeNode[], edges: Edge[]): string[
 }
 
 /**
+ * Apply control reductions (multiplicative stacking).
+ * Reduces a value by sampling each assigned control's reduction distribution.
+ */
+function applyControlReductions(
+  baseValue: number,
+  nodeId: string,
+  nodeAssignments: Map<string, ControlAssignment[]> | undefined,
+  controlMap: Map<string, Control> | undefined,
+  rng: () => number,
+): number {
+  const assignments = nodeAssignments?.get(nodeId);
+  if (!assignments || !controlMap) return baseValue;
+
+  let combinedPassThrough = 1;
+  for (const assignment of assignments) {
+    if (!assignment.enabled) continue;
+    const control = controlMap.get(assignment.controlId);
+    if (!control) continue;
+    const reductionDist = assignment.lefReductionOverride ?? control.lefReduction;
+    const reduction = sampleDistribution(reductionDist, rng);
+    combinedPassThrough *= 1 - Math.max(0, Math.min(1, reduction));
+  }
+  combinedPassThrough = Math.max(0, Math.min(1, combinedPassThrough));
+  return baseValue * combinedPassThrough;
+}
+
+/**
  * Evaluate the entire tree for a single iteration.
- * Returns per-node { lef } values (frequency only).
- * LM is scenario-level and sampled separately.
+ *
+ * Domain-aware: each node produces either a frequency or probability value.
+ * - event: frequency (TEF, reduced by controls)
+ * - condition: probability (0–1). Leaf mode or unary filter (multiplies child by P).
+ * - and: all-prob → product. all-freq → min. mixed → min(freqs) × product(probs).
+ * - or: all-prob → inclusion-exclusion. all-freq → sum. mixed → invalid (caught by validation).
+ * - outcome: sums child frequencies (implicit OR over attack paths). LM sampled by caller.
  */
 export function evaluateTree(
   nodes: AttackTreeNode[],
@@ -105,77 +140,101 @@ export function evaluateTree(
 
   for (const nodeId of sortedOrder) {
     const node = nodeMap.get(nodeId)!;
+    const childIds = childrenOf.get(nodeId) ?? [];
+    const childResults = childIds.map((id) => results.get(id)!);
 
-    if (node.type === 'leaf') {
-      if (!node.fairInputs) {
-        results.set(nodeId, { lef: 0 });
-        continue;
-      }
+    if (node.type === 'event') {
+      // Event node: frequency source (always a leaf in v2)
+      const tefDist = node.tef ?? node.fairInputs?.lef;
+      let tef = tefDist ? sampleDistribution(tefDist, rng) : 0;
+      tef = applyControlReductions(tef, nodeId, nodeAssignments, controlMap, rng);
+      results.set(nodeId, { value: tef, domain: 'frequency', tef, lef: tef });
+    } else if (node.type === 'condition') {
+      // Condition node: probability (leaf or unary filter)
+      const probDist = node.probability ?? node.fairInputs?.vulnerability;
+      let p = probDist ? Math.max(0, Math.min(1, sampleDistribution(probDist, rng))) : 1;
+      p = applyControlReductions(p, nodeId, nodeAssignments, controlMap, rng);
+      p = Math.max(0, Math.min(1, p));
 
-      let lef: number;
-      let tef: number | undefined;
-      let vulnerability: number | undefined;
-
-      // TEF x Vulnerability decomposition
-      if (node.fairInputs.tef && node.fairInputs.vulnerability) {
-        tef = sampleDistribution(node.fairInputs.tef, rng);
-        vulnerability = Math.max(
-          0,
-          Math.min(1, sampleDistribution(node.fairInputs.vulnerability, rng)),
-        );
-        lef = tef * vulnerability;
+      if (childResults.length === 1) {
+        // Filter mode: multiply child's value by P, preserving child's domain
+        const child = childResults[0];
+        const filtered = child.value * p;
+        results.set(nodeId, {
+          value: filtered,
+          domain: child.domain,
+          tef: child.tef,
+          lef: child.domain === 'frequency' ? filtered : undefined,
+        });
       } else {
-        lef = sampleDistribution(node.fairInputs.lef, rng);
+        // Leaf mode: pure probability
+        results.set(nodeId, { value: p, domain: 'probability' });
       }
-
-      // Apply control LEF reductions (multiplicative stacking)
-      const assignments = nodeAssignments?.get(nodeId);
-      if (assignments && controlMap) {
-        let combinedPassThrough = 1;
-        for (const assignment of assignments) {
-          if (!assignment.enabled) continue;
-          const control = controlMap.get(assignment.controlId);
-          if (!control) continue; // orphaned assignment
-          const reductionDist = assignment.lefReductionOverride ?? control.lefReduction;
-          const reduction = sampleDistribution(reductionDist, rng);
-          combinedPassThrough *= 1 - Math.max(0, Math.min(1, reduction));
-        }
-        combinedPassThrough = Math.max(0, Math.min(1, combinedPassThrough));
-        lef *= combinedPassThrough;
-      }
-
-      results.set(nodeId, { lef, tef, vulnerability });
-    } else {
-      // Gate node — aggregate LEF only
-      const childIds = childrenOf.get(nodeId) ?? [];
-      const childResults = childIds.map((id) => results.get(id)!);
-
+    } else if (node.type === 'and') {
       if (childResults.length === 0) {
-        results.set(nodeId, { lef: 0 });
+        results.set(nodeId, { value: 0, domain: 'probability' });
         continue;
       }
 
-      let combinedLEF: number;
+      const freqChildren = childResults.filter((r) => r.domain === 'frequency');
+      const probChildren = childResults.filter((r) => r.domain === 'probability');
 
-      if (node.type === 'and') {
-        // AND: LEF = product
-        combinedLEF = childResults.reduce((acc, r) => acc * r.lef, 1);
+      if (freqChildren.length === 0) {
+        // All probability: P = product(P_i)
+        const combined = probChildren.reduce((acc, r) => acc * r.value, 1);
+        results.set(nodeId, { value: combined, domain: 'probability' });
       } else {
-        // OR: LEF = 1 - product(1 - LEF_i), with clamping for LEF > 1
-        const anyAboveOne = childResults.some((r) => r.lef > 1);
-        if (anyAboveOne) {
-          const maxLEF = Math.max(...childResults.map((r) => r.lef));
-          const clampedProduct = childResults.reduce((acc, r) => acc * (1 - Math.min(r.lef, 1)), 1);
-          combinedLEF = (1 - clampedProduct) * maxLEF;
-        } else {
-          combinedLEF = 1 - childResults.reduce((acc, r) => acc * (1 - r.lef), 1);
-        }
+        // Has frequency children: min(freqs) × product(probs)
+        const minFreq = Math.min(...freqChildren.map((r) => r.value));
+        const probProduct = probChildren.reduce((acc, r) => acc * r.value, 1);
+        const combined = minFreq * probProduct;
+        results.set(nodeId, { value: combined, domain: 'frequency', lef: combined });
+      }
+    } else if (node.type === 'or') {
+      if (childResults.length === 0) {
+        results.set(nodeId, { value: 0, domain: 'probability' });
+        continue;
       }
 
-      // Clamp NaN/Infinity to 0
-      if (!isFinite(combinedLEF)) combinedLEF = 0;
+      const freqChildren = childResults.filter((r) => r.domain === 'frequency');
+      const probChildren = childResults.filter((r) => r.domain === 'probability');
 
-      results.set(nodeId, { lef: combinedLEF });
+      if (freqChildren.length > 0 && probChildren.length > 0) {
+        // Mixed domain OR: should have been caught by validation. Fallback: sum freqs only.
+        const combined = freqChildren.reduce((acc, r) => acc + r.value, 0);
+        results.set(nodeId, { value: combined, domain: 'frequency', lef: combined });
+      } else if (freqChildren.length > 0) {
+        // All frequency: sum
+        const combined = freqChildren.reduce((acc, r) => acc + r.value, 0);
+        results.set(nodeId, { value: combined, domain: 'frequency', lef: combined });
+      } else {
+        // All probability: inclusion-exclusion
+        const combined = 1 - probChildren.reduce((acc, r) => acc * (1 - r.value), 1);
+        results.set(nodeId, { value: combined, domain: 'probability' });
+      }
+    } else if (node.type === 'outcome') {
+      // Outcome node: sum child frequencies. LM is sampled by caller.
+      const totalLEF = childResults.reduce(
+        (acc, r) => acc + (r.domain === 'frequency' ? r.value : 0),
+        0,
+      );
+      results.set(nodeId, { value: totalLEF, domain: 'frequency', lef: totalLEF });
+    } else {
+      // v1 compat: old 'leaf' type — treat like event with LEF
+      const fairInputs = node.fairInputs;
+      let lef = 0;
+      let tef: number | undefined;
+      if (fairInputs) {
+        if (fairInputs.tef && fairInputs.vulnerability) {
+          tef = sampleDistribution(fairInputs.tef, rng);
+          const vuln = Math.max(0, Math.min(1, sampleDistribution(fairInputs.vulnerability, rng)));
+          lef = tef * vuln;
+        } else {
+          lef = sampleDistribution(fairInputs.lef, rng);
+        }
+        lef = applyControlReductions(lef, nodeId, nodeAssignments, controlMap, rng);
+      }
+      results.set(nodeId, { value: lef, domain: 'frequency', tef, lef });
     }
   }
 
@@ -227,6 +286,7 @@ function validateDistributionParams(dist: Distribution, context: string): string
 
 /**
  * Validate scenario before simulation.
+ * Supports both v1 (leaf/and/or + scenario LM) and v2 (outcome/event/condition/and/or).
  * Returns array of all error messages (empty = valid).
  */
 export function validateScenario(
@@ -242,9 +302,17 @@ export function validateScenario(
     return errors;
   }
 
-  // Single root
+  // Build lookups
   const nodesWithParent = new Set(edges.map((e) => e.targetId));
   const roots = nodes.filter((n) => !nodesWithParent.has(n.id));
+  const childrenOf = new Map<string, string[]>();
+  for (const n of nodes) childrenOf.set(n.id, []);
+  for (const e of edges) childrenOf.get(e.sourceId)!.push(e.targetId);
+
+  // Detect v2 scenario
+  const isV2 = nodes.some((n) => n.type === 'outcome');
+
+  // Single root
   if (roots.length !== 1) {
     errors.push('Tree must have exactly one root node');
   }
@@ -256,39 +324,98 @@ export function validateScenario(
     errors.push('Tree contains a cycle');
   }
 
-  // Scenario-level LM validation
-  if (!lossMagnitude) {
-    errors.push('Scenario is missing Loss Magnitude distribution');
-  } else {
-    errors.push(...validateDistributionParams(lossMagnitude, 'Loss Magnitude'));
-  }
+  if (isV2) {
+    // --- v2 validation ---
+    const outcomeNodes = nodes.filter((n) => n.type === 'outcome');
+    if (outcomeNodes.length !== 1) {
+      errors.push('Scenario must have exactly one outcome node');
+    }
 
-  // Leaf validation (LEF or TEF+Vulnerability)
-  for (const node of nodes) {
-    if (node.type === 'leaf') {
-      if (!node.fairInputs) {
-        errors.push(`Node '${node.label}' is missing LEF distribution`);
-        continue;
+    const outcome = outcomeNodes[0];
+    if (outcome) {
+      // Outcome must be root
+      if (nodesWithParent.has(outcome.id)) {
+        errors.push('Outcome node must be the root (no parent)');
       }
-      if (node.fairInputs.tef && node.fairInputs.vulnerability) {
-        errors.push(...validateDistributionParams(node.fairInputs.tef, `'${node.label}' (TEF)`));
-        errors.push(
-          ...validateDistributionParams(
-            node.fairInputs.vulnerability,
-            `'${node.label}' (Vulnerability)`,
-          ),
-        );
-      } else if (node.fairInputs.tef || node.fairInputs.vulnerability) {
-        errors.push(
-          `Node '${node.label}': TEF and Vulnerability must both be defined or both omitted`,
-        );
+
+      // Outcome must have LM
+      if (!outcome.lossMagnitude) {
+        errors.push('Outcome node is missing Loss Magnitude distribution');
       } else {
-        errors.push(...validateDistributionParams(node.fairInputs.lef, `'${node.label}' (LEF)`));
+        errors.push(...validateDistributionParams(outcome.lossMagnitude, `'${outcome.label}' (LM)`));
+      }
+    }
+
+    // Per-node validation
+    for (const node of nodes) {
+      const children = childrenOf.get(node.id) ?? [];
+
+      if (node.type === 'event') {
+        // Event must be a leaf
+        if (children.length > 0) {
+          errors.push(`Event node '${node.label}' must be a leaf (no children)`);
+        }
+        // Event must have TEF
+        const tefDist = node.tef ?? node.fairInputs?.lef;
+        if (!tefDist) {
+          errors.push(`Event node '${node.label}' is missing TEF distribution`);
+        } else {
+          errors.push(...validateDistributionParams(tefDist, `'${node.label}' (TEF)`));
+        }
+      } else if (node.type === 'condition') {
+        // Condition: 0 or 1 child
+        if (children.length > 1) {
+          errors.push(`Condition node '${node.label}' can have at most 1 child`);
+        }
+        // Condition should have probability distribution (default P=1 if missing)
+        const probDist = node.probability ?? node.fairInputs?.vulnerability;
+        if (probDist) {
+          errors.push(...validateDistributionParams(probDist, `'${node.label}' (Probability)`));
+        }
+      } else if (node.type === 'and' || node.type === 'or') {
+        if (children.length < 2) {
+          errors.push(`Gate '${node.label}' must have at least 2 children`);
+        }
+      }
+    }
+  } else {
+    // --- v1 validation (backward compat) ---
+    if (!lossMagnitude) {
+      errors.push('Scenario is missing Loss Magnitude distribution');
+    } else {
+      errors.push(...validateDistributionParams(lossMagnitude, 'Loss Magnitude'));
+    }
+
+    for (const node of nodes) {
+      if (node.type === 'leaf') {
+        if (!node.fairInputs) {
+          errors.push(`Node '${node.label}' is missing LEF distribution`);
+          continue;
+        }
+        if (node.fairInputs.tef && node.fairInputs.vulnerability) {
+          errors.push(
+            ...validateDistributionParams(node.fairInputs.tef, `'${node.label}' (TEF)`),
+          );
+          errors.push(
+            ...validateDistributionParams(
+              node.fairInputs.vulnerability,
+              `'${node.label}' (Vulnerability)`,
+            ),
+          );
+        } else if (node.fairInputs.tef || node.fairInputs.vulnerability) {
+          errors.push(
+            `Node '${node.label}': TEF and Vulnerability must both be defined or both omitted`,
+          );
+        } else {
+          errors.push(
+            ...validateDistributionParams(node.fairInputs.lef, `'${node.label}' (LEF)`),
+          );
+        }
       }
     }
   }
 
-  // Iterations validation
+  // Iterations validation (both versions)
   if (!(config.iterations > 0 && config.iterations <= 1000000)) {
     errors.push('Iterations must be between 1 and 1,000,000');
   }

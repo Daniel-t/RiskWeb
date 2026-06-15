@@ -15,7 +15,9 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
-    "test:all": "vitest run && playwright test"
+    "test:all": "vitest run && playwright test",
+    "test:harness": "tsx --tsconfig cli/tsconfig.json cli/simharness.ts",
+    "test:harness:ci": "tsx --tsconfig cli/tsconfig.json cli/simharness.ts --json --strict cli/fixtures/"
   },
   "dependencies": {
     "@dagrejs/dagre": "^3.0.0",
@@ -40,6 +42,7 @@
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.6.0",
     "prettier": "^3.8.3",
+    "tsx": "^4.22.4",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.59.2",
     "vite": "^8.0.12",

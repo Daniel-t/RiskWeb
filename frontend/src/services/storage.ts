@@ -1,4 +1,5 @@
 import type { Scenario, ScenarioMeta, Control, ControlMeta } from '@shared/index';
+import { migrateV1toV2 } from './migration';
 
 // --- Storage Port Interface ---
 // Allows swapping IndexedDB for an API backend in the future.
@@ -109,7 +110,7 @@ export const storage: StoragePort = {
   async getScenario(id: string): Promise<Scenario> {
     const scenario = await txGet<Scenario>('scenarios', id);
     if (!scenario) throw new Error(`Scenario not found: ${id}`);
-    return scenario;
+    return migrateV1toV2(scenario);
   },
 
   async saveScenario(scenario: Scenario): Promise<Scenario> {

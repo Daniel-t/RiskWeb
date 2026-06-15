@@ -62,16 +62,20 @@ function App() {
   const canRun = validationErrors.length === 0 && treeStore.nodes.length > 0;
 
   const buildScenario = useCallback((): Omit<Scenario, 'id' | 'metadata'> => {
+    const nodes = rfToSharedNodes(treeStore.nodes);
+    const isV2 = nodes.some((n) => n.type === 'outcome');
     return {
       name: scenarioStore.name,
       description: scenarioStore.description || undefined,
-      nodes: rfToSharedNodes(treeStore.nodes),
+      nodes,
       edges: rfToSharedEdges(treeStore.edges),
-      lossMagnitude: scenarioStore.lossMagnitude,
+      // v1: LM from scenario store; v2: LM lives on outcome node
+      lossMagnitude: isV2 ? undefined : scenarioStore.lossMagnitude,
       controlAssignments:
         controlStore.assignments.length > 0 ? controlStore.assignments : undefined,
       simulationConfig: scenarioStore.simulationConfig,
       results: simulationStore.results ?? undefined,
+      schemaVersion: isV2 ? 2 : undefined,
     };
   }, [
     treeStore.nodes,

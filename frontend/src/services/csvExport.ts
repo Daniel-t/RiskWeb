@@ -100,7 +100,7 @@ export function exportPerNodeCsv(
   scenarioName: string,
 ): void {
   const header =
-    'node_id,node_label,node_type,mean_lef,p10_lef,p50_lef,p90_lef,mean_tef,mean_vulnerability';
+    'node_id,node_label,node_type,domain,mean_lef,p10_lef,p50_lef,p90_lef,mean_tef,mean_vulnerability,mean_probability';
   const rows = [header];
 
   for (const node of nodes) {
@@ -111,12 +111,14 @@ export function exportPerNodeCsv(
         node.id,
         node.label,
         node.type,
+        pn.domain ?? '',
         fmtProb(pn.meanLEF),
         fmtALE(pn.percentiles[0.1] ?? 0),
         fmtALE(pn.percentiles[0.5] ?? 0),
         fmtALE(pn.percentiles[0.9] ?? 0),
         fmtProb(pn.meanTEF),
         fmtProb(pn.meanVulnerability),
+        fmtProb(pn.meanProbability),
       ]),
     );
   }

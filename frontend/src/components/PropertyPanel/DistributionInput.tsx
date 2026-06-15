@@ -6,6 +6,7 @@ interface DistributionInputProps {
   value: Distribution | undefined;
   onChange: (dist: Distribution) => void;
   max?: number;
+  defaultDist?: Distribution;
 }
 
 const defaultDistributions: Record<string, Distribution> = {
@@ -42,8 +43,9 @@ export function DistributionInput({
   value,
   onChange,
   max: maxValue,
+  defaultDist,
 }: DistributionInputProps) {
-  const dist = value ?? defaultDistributions.pert;
+  const dist = value ?? defaultDist ?? defaultDistributions.pert;
   const error = getValidationError(dist, maxValue);
 
   const handleTypeChange = (e: ChangeEvent<HTMLSelectElement>) => {

@@ -12,14 +12,20 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-import { useTreeStore } from '../../store/treeStore';
+import { useTreeStore, type TreeNodeType } from '../../store/treeStore';
 import { LeafNode } from './nodes/LeafNode';
 import { GateNode } from './nodes/GateNode';
+import { OutcomeNode } from './nodes/OutcomeNode';
+import { EventNode } from './nodes/EventNode';
+import { ConditionNode } from './nodes/ConditionNode';
 import { ContextMenu, type ContextMenuState } from './ContextMenu';
 
 const nodeTypes = {
   leaf: LeafNode,
   gate: GateNode,
+  outcome: OutcomeNode,
+  event: EventNode,
+  condition: ConditionNode,
 };
 
 export function AttackTreeCanvas() {
@@ -66,7 +72,7 @@ export function AttackTreeCanvas() {
       e.preventDefault();
 
       // Handle node type drops
-      const type = e.dataTransfer.getData('application/riskweb-node-type') as 'leaf' | 'and' | 'or';
+      const type = e.dataTransfer.getData('application/riskweb-node-type') as TreeNodeType;
       if (type && rfInstance) {
         const position = rfInstance.screenToFlowPosition({
           x: e.clientX,
@@ -131,8 +137,7 @@ export function AttackTreeCanvas() {
   );
 
   const handleContextAddNode = useCallback(
-    (type: 'leaf' | 'and' | 'or') => {
-      // The position from context menu is screen coords; convert to flow
+    (type: TreeNodeType) => {
       if (rfInstance && contextMenu) {
         const flowPos = rfInstance.screenToFlowPosition({
           x: contextMenu.x,

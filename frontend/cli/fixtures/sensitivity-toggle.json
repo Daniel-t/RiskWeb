@@ -1,0 +1,80 @@
+{
+  "name": "Control toggle sensitivity analysis",
+  "description": "Two controls assigned; toggling each off should show positive delta (removing a control increases ALE).",
+  "scenario": {
+    "id": "test-sens-toggle",
+    "name": "Sensitivity Toggle Test",
+    "nodes": [
+      {
+        "id": "root",
+        "type": "or",
+        "label": "Root OR",
+        "position": { "x": 200, "y": 0 }
+      },
+      {
+        "id": "leaf1",
+        "type": "leaf",
+        "label": "Phishing",
+        "position": { "x": 100, "y": 200 },
+        "fairInputs": {
+          "lef": { "type": "constant", "params": { "value": 10 } }
+        }
+      },
+      {
+        "id": "leaf2",
+        "type": "leaf",
+        "label": "Malware",
+        "position": { "x": 300, "y": 200 },
+        "fairInputs": {
+          "lef": { "type": "constant", "params": { "value": 5 } }
+        }
+      }
+    ],
+    "edges": [
+      { "id": "e1", "sourceId": "root", "targetId": "leaf1" },
+      { "id": "e2", "sourceId": "root", "targetId": "leaf2" }
+    ],
+    "lossMagnitude": { "type": "constant", "params": { "value": 50000 } },
+    "controlAssignments": [
+      { "id": "ca-1", "controlId": "ctrl-1", "nodeId": "leaf1", "enabled": true },
+      { "id": "ca-2", "controlId": "ctrl-2", "nodeId": "leaf2", "enabled": true }
+    ],
+    "simulationConfig": {
+      "iterations": 5000,
+      "seed": 42,
+      "confidenceIntervals": [0.5]
+    },
+    "metadata": { "created": "2026-01-01T00:00:00.000Z", "modified": "2026-01-01T00:00:00.000Z" }
+  },
+  "controls": [
+    {
+      "id": "ctrl-1",
+      "name": "Email Filter",
+      "category": "preventive",
+      "attackTechniques": [],
+      "d3fendTechniques": [],
+      "lefReduction": { "type": "constant", "params": { "value": 0.6 } },
+      "metadata": { "created": "2026-01-01T00:00:00.000Z", "modified": "2026-01-01T00:00:00.000Z" }
+    },
+    {
+      "id": "ctrl-2",
+      "name": "Antivirus",
+      "category": "detective",
+      "attackTechniques": [],
+      "d3fendTechniques": [],
+      "lefReduction": { "type": "constant", "params": { "value": 0.4 } },
+      "metadata": { "created": "2026-01-01T00:00:00.000Z", "modified": "2026-01-01T00:00:00.000Z" }
+    }
+  ],
+  "sensitivity": { "controlToggle": true },
+  "expected": {
+    "sensitivity": {
+      "controlToggle": {
+        "items": {
+          "ctrl-1": { "delta": { "min": 1, "max": 1000000 } },
+          "ctrl-2": { "delta": { "min": 1, "max": 1000000 } }
+        }
+      }
+    }
+  }
+}

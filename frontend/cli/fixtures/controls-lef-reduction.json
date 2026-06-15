@@ -1,0 +1,54 @@
+{
+  "name": "Control with LEF reduction",
+  "description": "Single leaf with a control applying 50% constant LEF reduction. Controlled ALE should be ~50% of baseline.",
+  "scenario": {
+    "id": "test-ctrl-lef",
+    "name": "LEF Reduction Test",
+    "nodes": [
+      {
+        "id": "leaf1",
+        "type": "leaf",
+        "label": "Attack Vector",
+        "position": { "x": 0, "y": 0 },
+        "fairInputs": {
+          "lef": { "type": "constant", "params": { "value": 10 } }
+        }
+      }
+    ],
+    "edges": [],
+    "lossMagnitude": { "type": "constant", "params": { "value": 50000 } },
+    "controlAssignments": [
+      {
+        "id": "ca-1",
+        "controlId": "ctrl-1",
+        "nodeId": "leaf1",
+        "enabled": true
+      }
+    ],
+    "simulationConfig": {
+      "iterations": 5000,
+      "seed": 42,
+      "confidenceIntervals": [0.1, 0.5, 0.9]
+    },
+    "metadata": { "created": "2026-01-01T00:00:00.000Z", "modified": "2026-01-01T00:00:00.000Z" }
+  },
+  "controls": [
+    {
+      "id": "ctrl-1",
+      "name": "Firewall",
+      "category": "preventive",
+      "attackTechniques": [],
+      "d3fendTechniques": [],
+      "lefReduction": { "type": "constant", "params": { "value": 0.5 } },
+      "metadata": { "created": "2026-01-01T00:00:00.000Z", "modified": "2026-01-01T00:00:00.000Z" }
+    }
+  ],
+  "expected": {
+    "simulation": {
+      "mean": { "min": 249000, "max": 251000 }
+    },
+    "baseline": {
+      "mean": { "min": 499000, "max": 501000 }
+    }
+  }
+}

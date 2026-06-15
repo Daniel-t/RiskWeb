@@ -1,0 +1,28 @@
+{
+  "name": "Validation error: invalid PERT parameters",
+  "description": "PERT with min > max should produce a validation error.",
+  "scenario": {
+    "id": "test-err-bad-pert",
+    "name": "Bad PERT",
+    "nodes": [
+      {
+        "id": "leaf1",
+        "type": "leaf",
+        "label": "Bad Leaf",
+        "position": { "x": 0, "y": 0 },
+        "fairInputs": {
+          "lef": { "type": "pert", "params": { "min": 100, "mode": 50, "max": 10 } }
+        }
+      }
+    ],
+    "edges": [],
+    "lossMagnitude": { "type": "constant", "params": { "value": 10000 } },
+    "simulationConfig": {
+      "iterations": 1000,
+      "seed": 42,
+      "confidenceIntervals": [0.5]
+    },
+    "metadata": { "created": "2026-01-01T00:00:00.000Z", "modified": "2026-01-01T00:00:00.000Z" }
+  },
+  "expectedErrors": ["Invalid PERT parameters"]
+}

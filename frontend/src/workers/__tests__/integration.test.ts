@@ -62,7 +62,7 @@ function computeALE(
   const result = evaluateTree(nodes, edges, sorted, rng, nodeAssignments, controlMap);
   // Root is the last node in sorted order
   const rootId = sorted[sorted.length - 1];
-  return result.get(rootId)!.lef * lm;
+  return (result.get(rootId)!.lef ?? result.get(rootId)!.value) * lm;
 }
 
 // ---------- shared test fixtures ----------
@@ -72,8 +72,8 @@ const nodes = [gate('root', 'or'), leaf('A', constant(0.5)), leaf('B', constant(
 const edges = [edge('root', 'A'), edge('root', 'B')];
 const LM = 100_000;
 
-// Baseline OR: 1 - (1-0.5)(1-0.3) = 1 - 0.35 = 0.65
-const BASELINE_ALE = 0.65 * LM; // 65000
+// Baseline OR (frequency-domain sum): 0.5 + 0.3 = 0.8
+const BASELINE_ALE = 0.8 * LM; // 80000
 
 describe('integration: controls end-to-end', () => {
   it('baseline ALE without controls', () => {
@@ -83,20 +83,20 @@ describe('integration: controls end-to-end', () => {
 
   it('single control reduces ALE', () => {
     // 80% reduction on leafA -> leafA LEF = 0.5 * 0.2 = 0.1
-    // OR: 1 - (1-0.1)(1-0.3) = 1 - 0.63 = 0.37
+    // OR (freq sum): 0.1 + 0.3 = 0.4
     const control = makeControl('c1', 0.8);
     const assignment = makeAssignment('a1', 'c1', 'A');
     const nodeAssignments = new Map([['A', [assignment]]]);
     const controlMap = new Map([['c1', control]]);
 
     const ale = computeALE(nodes, edges, LM, mulberry32(1), nodeAssignments, controlMap);
-    expect(ale).toBeCloseTo(0.37 * LM, 5);
+    expect(ale).toBeCloseTo(0.4 * LM, 5);
     expect(ale).toBeLessThan(BASELINE_ALE);
   });
 
   it('multiple controls stack multiplicatively', () => {
     // Two 50% controls on leafA -> leafA LEF = 0.5 * 0.5 * 0.5 = 0.125
-    // OR: 1 - (1-0.125)(1-0.3) = 1 - 0.6125 = 0.3875
+    // OR (freq sum): 0.125 + 0.3 = 0.425
     const c1 = makeControl('c1', 0.5);
     const c2 = makeControl('c2', 0.5);
     const assignments = [makeAssignment('a1', 'c1', 'A'), makeAssignment('a2', 'c2', 'A')];
@@ -107,7 +107,7 @@ describe('integration: controls end-to-end', () => {
     ]);
 
     const ale = computeALE(nodes, edges, LM, mulberry32(1), nodeAssignments, controlMap);
-    expect(ale).toBeCloseTo(0.3875 * LM, 5);
+    expect(ale).toBeCloseTo(0.425 * LM, 5);
   });
 
   it('disabled control has no effect on ALE', () => {
@@ -123,7 +123,7 @@ describe('integration: controls end-to-end', () => {
   it('override changes the reduction magnitude', () => {
     // Base: 50% reduction, override: 90% reduction
     // leafA LEF = 0.5 * (1 - 0.9) = 0.05
-    // OR: 1 - (1-0.05)(1-0.3) = 1 - 0.665 = 0.335
+    // OR (freq sum): 0.05 + 0.3 = 0.35
     const control = makeControl('c1', 0.5);
     const assignment = makeAssignment('a1', 'c1', 'A', {
       lefReductionOverride: constant(0.9),
@@ -132,7 +132,7 @@ describe('integration: controls end-to-end', () => {
     const controlMap = new Map([['c1', control]]);
 
     const ale = computeALE(nodes, edges, LM, mulberry32(1), nodeAssignments, controlMap);
-    expect(ale).toBeCloseTo(0.335 * LM, 5);
+    expect(ale).toBeCloseTo(0.35 * LM, 5);
   });
 
   it('statistical test with PERT distributions shows controls reduce mean ALE', () => {
@@ -165,8 +165,8 @@ describe('integration: controls end-to-end', () => {
         controlMap,
       );
 
-      const rootBaseline = baseResult.get('root')!.lef;
-      const rootControlled = ctrlResult.get('root')!.lef;
+      const rootBaseline = baseResult.get('root')!.lef ?? baseResult.get('root')!.value;
+      const rootControlled = ctrlResult.get('root')!.lef ?? ctrlResult.get('root')!.value;
 
       sumBaseline += rootBaseline * LM;
       sumControlled += rootControlled * LM;

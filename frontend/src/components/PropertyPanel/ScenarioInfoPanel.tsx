@@ -17,6 +17,7 @@ export function ScenarioInfoPanel() {
   } = useScenarioStore();
   const { nodes, edges, getValidationErrors } = useTreeStore();
   const errors = getValidationErrors();
+  const isV2 = nodes.some((n) => n.data.nodeType === 'outcome');
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -41,11 +42,18 @@ export function ScenarioInfoPanel() {
         />
       </div>
 
-      <DistributionInput
-        label="Loss Magnitude ($/event)"
-        value={lossMagnitude}
-        onChange={(dist: Distribution) => setLossMagnitude(dist)}
-      />
+      {!isV2 && (
+        <DistributionInput
+          label="Loss Magnitude ($/event)"
+          value={lossMagnitude}
+          onChange={(dist: Distribution) => setLossMagnitude(dist)}
+        />
+      )}
+      {isV2 && (
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic' }}>
+          Loss Magnitude is configured on the Outcome node
+        </div>
+      )}
 
       <div className="section-header" style={{ marginTop: 8 }}>
         Simulation Config

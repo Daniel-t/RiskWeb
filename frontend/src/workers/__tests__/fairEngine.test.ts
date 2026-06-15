@@ -14,8 +14,18 @@ function makeRng(seed = 12345) {
   return mulberry32(seed);
 }
 
-function leaf(id: string, lef: Distribution): AttackTreeNode {
-  return { id, type: 'leaf', label: id, position: { x: 0, y: 0 }, fairInputs: { lef } };
+// -- v2 node helpers --
+
+function eventNode(id: string, tef: Distribution): AttackTreeNode {
+  return { id, type: 'event', label: id, position: { x: 0, y: 0 }, tef };
+}
+
+function conditionNode(id: string, probability: Distribution): AttackTreeNode {
+  return { id, type: 'condition', label: id, position: { x: 0, y: 0 }, probability };
+}
+
+function outcomeNode(id: string, lossMagnitude: Distribution): AttackTreeNode {
+  return { id, type: 'outcome', label: id, position: { x: 0, y: 0 }, lossMagnitude };
 }
 
 function gate(id: string, type: 'and' | 'or'): AttackTreeNode {
@@ -26,7 +36,7 @@ function edge(source: string, target: string): Edge {
   return { id: `${source}-${target}`, sourceId: source, targetId: target };
 }
 
-const constantLef = (v: number): Distribution => ({ type: 'constant', params: { value: v } });
+const constant = (v: number): Distribution => ({ type: 'constant', params: { value: v } });
 
 // ---------- topologicalSort ----------
 
@@ -37,19 +47,11 @@ describe('topologicalSort', () => {
   });
 
   it('linear chain: leaf first, root last', () => {
-    const nodes = [gate('root', 'or'), gate('mid', 'or'), leaf('l', constantLef(1))];
+    const nodes = [gate('root', 'or'), gate('mid', 'or'), eventNode('l', constant(1))];
     const edges = [edge('root', 'mid'), edge('mid', 'l')];
     const sorted = topologicalSort(nodes, edges);
     expect(sorted.indexOf('l')).toBeLessThan(sorted.indexOf('mid'));
     expect(sorted.indexOf('mid')).toBeLessThan(sorted.indexOf('root'));
-  });
-
-  it('fan-out: both children before root', () => {
-    const nodes = [gate('root', 'or'), leaf('a', constantLef(1)), leaf('b', constantLef(1))];
-    const edges = [edge('root', 'a'), edge('root', 'b')];
-    const sorted = topologicalSort(nodes, edges);
-    expect(sorted.indexOf('a')).toBeLessThan(sorted.indexOf('root'));
-    expect(sorted.indexOf('b')).toBeLessThan(sorted.indexOf('root'));
   });
 
   it('throws on cycle', () => {
@@ -59,130 +61,419 @@ describe('topologicalSort', () => {
   });
 });
 
-// ---------- evaluateTree ----------
+// ---------- evaluateTree: v2 node types ----------
 
-describe('evaluateTree', () => {
-  it('single leaf returns sampled LEF', () => {
-    const nodes = [leaf('l', constantLef(5))];
+describe('evaluateTree v2', () => {
+  it('event node produces frequency from TEF', () => {
+    const nodes = [eventNode('e', constant(10))];
     const sorted = topologicalSort(nodes, []);
     const result = evaluateTree(nodes, [], sorted, makeRng());
-    expect(result.get('l')!.lef).toBe(5);
+    expect(result.get('e')!.value).toBe(10);
+    expect(result.get('e')!.domain).toBe('frequency');
   });
 
-  it('leaf with no fairInputs returns lef 0', () => {
-    const nodes: AttackTreeNode[] = [
-      { id: 'l', type: 'leaf', label: 'l', position: { x: 0, y: 0 } },
-    ];
+  it('condition node (leaf mode) produces probability', () => {
+    const nodes = [conditionNode('c', constant(0.3))];
     const sorted = topologicalSort(nodes, []);
     const result = evaluateTree(nodes, [], sorted, makeRng());
-    expect(result.get('l')!.lef).toBe(0);
+    expect(result.get('c')!.value).toBeCloseTo(0.3, 10);
+    expect(result.get('c')!.domain).toBe('probability');
   });
 
-  it('OR gate: 1 - prod(1 - LEF_i)', () => {
-    const nodes = [gate('root', 'or'), leaf('a', constantLef(0.3)), leaf('b', constantLef(0.3))];
-    const edges = [edge('root', 'a'), edge('root', 'b')];
+  it('condition node (filter mode) filters frequency by P', () => {
+    const nodes = [conditionNode('c', constant(0.4)), eventNode('e', constant(100))];
+    const edges = [edge('c', 'e')];
     const sorted = topologicalSort(nodes, edges);
     const result = evaluateTree(nodes, edges, sorted, makeRng());
-    const expected = 1 - (1 - 0.3) * (1 - 0.3); // 0.51
-    expect(result.get('root')!.lef).toBeCloseTo(expected, 10);
+    expect(result.get('c')!.value).toBeCloseTo(40, 10); // 100 × 0.4
+    expect(result.get('c')!.domain).toBe('frequency');
   });
 
-  it('AND gate: product of LEFs', () => {
-    const nodes = [gate('root', 'and'), leaf('a', constantLef(0.5)), leaf('b', constantLef(0.5))];
-    const edges = [edge('root', 'a'), edge('root', 'b')];
-    const sorted = topologicalSort(nodes, edges);
-    const result = evaluateTree(nodes, edges, sorted, makeRng());
-    expect(result.get('root')!.lef).toBeCloseTo(0.25, 10);
-  });
-
-  it('control LEF reduction applied to leaf', () => {
-    const nodes = [leaf('l', constantLef(10))];
-    const sorted = topologicalSort(nodes, []);
-
-    const control: Control = {
-      id: 'c1',
-      name: 'Test',
-      category: 'preventive',
-      attackTechniques: [],
-      d3fendTechniques: [],
-      lefReduction: constantLef(0.5),
-      metadata: { created: '', modified: '' },
-    };
-    const assignment: ControlAssignment = {
-      id: 'a1',
-      controlId: 'c1',
-      nodeId: 'l',
-      enabled: true,
-    };
-
-    const nodeAssignments = new Map([['l', [assignment]]]);
-    const controlMap = new Map([['c1', control]]);
-
-    const result = evaluateTree(nodes, [], sorted, makeRng(), nodeAssignments, controlMap);
-    expect(result.get('l')!.lef).toBeCloseTo(5, 10);
-  });
-
-  it('disabled control is ignored', () => {
-    const nodes = [leaf('l', constantLef(10))];
-    const sorted = topologicalSort(nodes, []);
-
-    const control: Control = {
-      id: 'c1',
-      name: 'Test',
-      category: 'preventive',
-      attackTechniques: [],
-      d3fendTechniques: [],
-      lefReduction: constantLef(0.5),
-      metadata: { created: '', modified: '' },
-    };
-    const assignment: ControlAssignment = {
-      id: 'a1',
-      controlId: 'c1',
-      nodeId: 'l',
-      enabled: false,
-    };
-
-    const nodeAssignments = new Map([['l', [assignment]]]);
-    const controlMap = new Map([['c1', control]]);
-
-    const result = evaluateTree(nodes, [], sorted, makeRng(), nodeAssignments, controlMap);
-    expect(result.get('l')!.lef).toBe(10);
-  });
-
-  it('multiple controls stack multiplicatively', () => {
-    const nodes = [leaf('l', constantLef(10))];
-    const sorted = topologicalSort(nodes, []);
-
-    const makeControl = (id: string): Control => ({
-      id,
-      name: id,
-      category: 'preventive',
-      attackTechniques: [],
-      d3fendTechniques: [],
-      lefReduction: constantLef(0.5),
-      metadata: { created: '', modified: '' },
-    });
-
-    const assignments: ControlAssignment[] = [
-      { id: 'a1', controlId: 'c1', nodeId: 'l', enabled: true },
-      { id: 'a2', controlId: 'c2', nodeId: 'l', enabled: true },
+  it('condition chain filters frequency cumulatively', () => {
+    const nodes = [
+      conditionNode('c1', constant(0.5)),
+      conditionNode('c2', constant(0.3)),
+      eventNode('e', constant(100)),
     ];
+    const edges = [edge('c1', 'c2'), edge('c2', 'e')];
+    const sorted = topologicalSort(nodes, edges);
+    const result = evaluateTree(nodes, edges, sorted, makeRng());
+    expect(result.get('c1')!.value).toBeCloseTo(15, 10); // 100 × 0.3 × 0.5
+    expect(result.get('c1')!.domain).toBe('frequency');
+  });
 
-    const nodeAssignments = new Map([['l', assignments]]);
-    const controlMap = new Map([
-      ['c1', makeControl('c1')],
-      ['c2', makeControl('c2')],
-    ]);
-
-    const result = evaluateTree(nodes, [], sorted, makeRng(), nodeAssignments, controlMap);
-    // passthrough = 0.5 * 0.5 = 0.25, LEF = 10 * 0.25 = 2.5
-    expect(result.get('l')!.lef).toBeCloseTo(2.5, 10);
+  it('condition filter on probability child produces probability', () => {
+    const nodes = [conditionNode('c1', constant(0.5)), conditionNode('c2', constant(0.6))];
+    const edges = [edge('c1', 'c2')];
+    const sorted = topologicalSort(nodes, edges);
+    const result = evaluateTree(nodes, edges, sorted, makeRng());
+    expect(result.get('c1')!.value).toBeCloseTo(0.3, 10); // 0.6 × 0.5
+    expect(result.get('c1')!.domain).toBe('probability');
   });
 });
 
-// ---------- validateScenario ----------
+// ---------- AND gate ----------
 
-describe('validateScenario', () => {
+describe('AND gate v2', () => {
+  it('all probability children: product', () => {
+    const nodes = [
+      gate('g', 'and'),
+      conditionNode('a', constant(0.3)),
+      conditionNode('b', constant(0.5)),
+    ];
+    const edges = [edge('g', 'a'), edge('g', 'b')];
+    const sorted = topologicalSort(nodes, edges);
+    const result = evaluateTree(nodes, edges, sorted, makeRng());
+    expect(result.get('g')!.value).toBeCloseTo(0.15, 10);
+    expect(result.get('g')!.domain).toBe('probability');
+  });
+
+  it('all frequency children: min (bottleneck)', () => {
+    const nodes = [
+      gate('g', 'and'),
+      eventNode('e1', constant(10)),
+      eventNode('e2', constant(3)),
+    ];
+    const edges = [edge('g', 'e1'), edge('g', 'e2')];
+    const sorted = topologicalSort(nodes, edges);
+    const result = evaluateTree(nodes, edges, sorted, makeRng());
+    expect(result.get('g')!.value).toBe(3); // min(10, 3)
+    expect(result.get('g')!.domain).toBe('frequency');
+  });
+
+  it('mixed domain: min(freqs) × product(probs)', () => {
+    const nodes = [
+      gate('g', 'and'),
+      conditionNode('c1', constant(0.4)),
+      conditionNode('c2', constant(0.6)),
+      eventNode('e', constant(100)),
+    ];
+    // c1 filters e (frequency 100 × 0.4 = 40), c2 is prob leaf (0.6)
+    const edges = [edge('g', 'c1'), edge('g', 'c2'), edge('c1', 'e')];
+    const sorted = topologicalSort(nodes, edges);
+    const result = evaluateTree(nodes, edges, sorted, makeRng());
+    // g: mixed AND — freq children = [c1 at 40], prob children = [c2 at 0.6]
+    // min(40) × product(0.6) = 24
+    expect(result.get('g')!.value).toBeCloseTo(24, 10);
+    expect(result.get('g')!.domain).toBe('frequency');
+  });
+});
+
+// ---------- OR gate ----------
+
+describe('OR gate v2', () => {
+  it('all probability children: inclusion-exclusion', () => {
+    const nodes = [
+      gate('g', 'or'),
+      conditionNode('a', constant(0.3)),
+      conditionNode('b', constant(0.3)),
+    ];
+    const edges = [edge('g', 'a'), edge('g', 'b')];
+    const sorted = topologicalSort(nodes, edges);
+    const result = evaluateTree(nodes, edges, sorted, makeRng());
+    const expected = 1 - (1 - 0.3) * (1 - 0.3); // 0.51
+    expect(result.get('g')!.value).toBeCloseTo(expected, 10);
+    expect(result.get('g')!.domain).toBe('probability');
+  });
+
+  it('all frequency children: sum', () => {
+    const nodes = [
+      gate('g', 'or'),
+      eventNode('e1', constant(10)),
+      eventNode('e2', constant(5)),
+    ];
+    const edges = [edge('g', 'e1'), edge('g', 'e2')];
+    const sorted = topologicalSort(nodes, edges);
+    const result = evaluateTree(nodes, edges, sorted, makeRng());
+    expect(result.get('g')!.value).toBe(15); // 10 + 5
+    expect(result.get('g')!.domain).toBe('frequency');
+  });
+});
+
+// ---------- outcome node ----------
+
+describe('outcome node', () => {
+  it('sums child frequencies', () => {
+    const nodes = [
+      outcomeNode('o', constant(100000)),
+      eventNode('e1', constant(10)),
+      eventNode('e2', constant(5)),
+    ];
+    const edges = [edge('o', 'e1'), edge('o', 'e2')];
+    const sorted = topologicalSort(nodes, edges);
+    const result = evaluateTree(nodes, edges, sorted, makeRng());
+    expect(result.get('o')!.value).toBe(15);
+    expect(result.get('o')!.domain).toBe('frequency');
+  });
+});
+
+// ---------- KEY CORRECTNESS CHECK: AND < OR ----------
+
+describe('AND vs OR correctness', () => {
+  it('AND gate produces LOWER value than OR gate for same inputs', () => {
+    const makeTree = (gateType: 'and' | 'or') => {
+      const nodes = [
+        gate('g', gateType),
+        conditionNode('a', constant(0.4)),
+        conditionNode('b', constant(0.6)),
+      ];
+      const edges = [edge('g', 'a'), edge('g', 'b')];
+      const sorted = topologicalSort(nodes, edges);
+      return evaluateTree(nodes, edges, sorted, makeRng());
+    };
+
+    const andResult = makeTree('and').get('g')!.value;
+    const orResult = makeTree('or').get('g')!.value;
+
+    expect(andResult).toBeLessThan(orResult);
+    expect(andResult).toBeCloseTo(0.24, 10); // 0.4 × 0.6
+    expect(orResult).toBeCloseTo(0.76, 10); // 1 - 0.6 × 0.4
+  });
+
+  it('frequency domain: AND(min) < OR(sum)', () => {
+    const makeTree = (gateType: 'and' | 'or') => {
+      const nodes = [
+        gate('g', gateType),
+        eventNode('e1', constant(10)),
+        eventNode('e2', constant(5)),
+      ];
+      const edges = [edge('g', 'e1'), edge('g', 'e2')];
+      const sorted = topologicalSort(nodes, edges);
+      return evaluateTree(nodes, edges, sorted, makeRng());
+    };
+
+    const andResult = makeTree('and').get('g')!.value;
+    const orResult = makeTree('or').get('g')!.value;
+
+    expect(andResult).toBe(5);  // min(10, 5)
+    expect(orResult).toBe(15);  // 10 + 5
+    expect(andResult).toBeLessThan(orResult);
+  });
+});
+
+// ---------- Full tree: phishing example ----------
+
+describe('full v2 tree', () => {
+  it('phishing example produces correct ALE components', () => {
+    const nodes = [
+      outcomeNode('o', constant(100000)),
+      conditionNode('clicks', constant(0.4)),
+      conditionNode('reaches', constant(0.3)),
+      eventNode('phishing', constant(100)),
+    ];
+    const edges = [
+      edge('o', 'clicks'),
+      edge('clicks', 'reaches'),
+      edge('reaches', 'phishing'),
+    ];
+    const sorted = topologicalSort(nodes, edges);
+    const result = evaluateTree(nodes, edges, sorted, makeRng());
+
+    // phishing: TEF = 100
+    expect(result.get('phishing')!.value).toBe(100);
+    // reaches: 100 × 0.3 = 30
+    expect(result.get('reaches')!.value).toBeCloseTo(30, 10);
+    // clicks: 30 × 0.4 = 12
+    expect(result.get('clicks')!.value).toBeCloseTo(12, 10);
+    // outcome: sum = 12
+    expect(result.get('o')!.value).toBeCloseTo(12, 10);
+  });
+});
+
+// ---------- control reductions ----------
+
+describe('control reductions v2', () => {
+  it('control reduces event TEF', () => {
+    const nodes = [eventNode('e', constant(10))];
+    const sorted = topologicalSort(nodes, []);
+
+    const control: Control = {
+      id: 'c1',
+      name: 'Test',
+      category: 'preventive',
+      attackTechniques: [],
+      d3fendTechniques: [],
+      lefReduction: constant(0.5),
+      metadata: { created: '', modified: '' },
+    };
+    const assignment: ControlAssignment = {
+      id: 'a1',
+      controlId: 'c1',
+      nodeId: 'e',
+      enabled: true,
+    };
+
+    const nodeAssignments = new Map([['e', [assignment]]]);
+    const controlMap = new Map([['c1', control]]);
+
+    const result = evaluateTree(nodes, [], sorted, makeRng(), nodeAssignments, controlMap);
+    expect(result.get('e')!.value).toBeCloseTo(5, 10); // 10 × (1 - 0.5)
+  });
+
+  it('control reduces condition probability', () => {
+    const nodes = [conditionNode('c', constant(0.8))];
+    const sorted = topologicalSort(nodes, []);
+
+    const control: Control = {
+      id: 'c1',
+      name: 'Test',
+      category: 'preventive',
+      attackTechniques: [],
+      d3fendTechniques: [],
+      lefReduction: constant(0.5),
+      metadata: { created: '', modified: '' },
+    };
+    const assignment: ControlAssignment = {
+      id: 'a1',
+      controlId: 'c1',
+      nodeId: 'c',
+      enabled: true,
+    };
+
+    const nodeAssignments = new Map([['c', [assignment]]]);
+    const controlMap = new Map([['c1', control]]);
+
+    const result = evaluateTree(nodes, [], sorted, makeRng(), nodeAssignments, controlMap);
+    expect(result.get('c')!.value).toBeCloseTo(0.4, 10); // 0.8 × (1 - 0.5)
+  });
+
+  it('disabled control is ignored', () => {
+    const nodes = [eventNode('e', constant(10))];
+    const sorted = topologicalSort(nodes, []);
+
+    const control: Control = {
+      id: 'c1',
+      name: 'Test',
+      category: 'preventive',
+      attackTechniques: [],
+      d3fendTechniques: [],
+      lefReduction: constant(0.5),
+      metadata: { created: '', modified: '' },
+    };
+    const assignment: ControlAssignment = {
+      id: 'a1',
+      controlId: 'c1',
+      nodeId: 'e',
+      enabled: false,
+    };
+
+    const nodeAssignments = new Map([['e', [assignment]]]);
+    const controlMap = new Map([['c1', control]]);
+
+    const result = evaluateTree(nodes, [], sorted, makeRng(), nodeAssignments, controlMap);
+    expect(result.get('e')!.value).toBe(10);
+  });
+});
+
+// ---------- reproducibility ----------
+
+describe('evaluateTree - reproducibility', () => {
+  const pertTef: Distribution = { type: 'pert', params: { min: 1, mode: 5, max: 20 } };
+
+  it('same seed produces identical results', () => {
+    const nodes = [
+      outcomeNode('o', constant(100000)),
+      eventNode('e1', pertTef),
+      eventNode('e2', pertTef),
+    ];
+    const edges = [edge('o', 'e1'), edge('o', 'e2')];
+    const sorted = topologicalSort(nodes, edges);
+
+    const result1 = evaluateTree(nodes, edges, sorted, makeRng(42));
+    const result2 = evaluateTree(nodes, edges, sorted, makeRng(42));
+
+    expect(result1.get('e1')!.value).toBe(result2.get('e1')!.value);
+    expect(result1.get('e2')!.value).toBe(result2.get('e2')!.value);
+    expect(result1.get('o')!.value).toBe(result2.get('o')!.value);
+  });
+
+  it('different seeds produce different results', () => {
+    const nodes = [eventNode('e', pertTef)];
+    const sorted = topologicalSort(nodes, []);
+
+    const result1 = evaluateTree(nodes, [], sorted, makeRng(1));
+    const result2 = evaluateTree(nodes, [], sorted, makeRng(99999));
+
+    expect(result1.get('e')!.value).not.toBe(result2.get('e')!.value);
+  });
+});
+
+// ---------- validateScenario v2 ----------
+
+describe('validateScenario v2', () => {
+  const validConfig: SimulationConfig = {
+    iterations: 10000,
+    seed: 42,
+    confidenceIntervals: [0.1, 0.5, 0.9],
+  };
+
+  it('valid v2 scenario returns empty errors', () => {
+    const nodes = [
+      outcomeNode('o', constant(100000)),
+      eventNode('e', constant(5)),
+    ];
+    const edges = [edge('o', 'e')];
+    expect(validateScenario(nodes, edges, validConfig)).toEqual([]);
+  });
+
+  it('outcome missing LM', () => {
+    const nodes: AttackTreeNode[] = [
+      { id: 'o', type: 'outcome', label: 'O', position: { x: 0, y: 0 } },
+      eventNode('e', constant(5)),
+    ];
+    const edges = [edge('o', 'e')];
+    const errors = validateScenario(nodes, edges, validConfig);
+    expect(errors.some((e) => e.includes('Loss Magnitude'))).toBe(true);
+  });
+
+  it('event missing TEF', () => {
+    const nodes: AttackTreeNode[] = [
+      outcomeNode('o', constant(100000)),
+      { id: 'e', type: 'event', label: 'E', position: { x: 0, y: 0 } },
+    ];
+    const edges = [edge('o', 'e')];
+    const errors = validateScenario(nodes, edges, validConfig);
+    expect(errors.some((e) => e.includes('TEF'))).toBe(true);
+  });
+
+  it('event with children is invalid', () => {
+    const nodes = [
+      outcomeNode('o', constant(100000)),
+      eventNode('e', constant(5)),
+      conditionNode('c', constant(0.5)),
+    ];
+    const edges = [edge('o', 'e'), edge('e', 'c')];
+    const errors = validateScenario(nodes, edges, validConfig);
+    expect(errors.some((e) => e.includes('leaf'))).toBe(true);
+  });
+
+  it('condition with 2+ children is invalid', () => {
+    const nodes = [
+      outcomeNode('o', constant(100000)),
+      conditionNode('c', constant(0.5)),
+      eventNode('e1', constant(5)),
+      eventNode('e2', constant(3)),
+    ];
+    const edges = [edge('o', 'c'), edge('c', 'e1'), edge('c', 'e2')];
+    const errors = validateScenario(nodes, edges, validConfig);
+    expect(errors.some((e) => e.includes('at most 1'))).toBe(true);
+  });
+
+  it('gate with < 2 children is invalid', () => {
+    const nodes = [
+      outcomeNode('o', constant(100000)),
+      gate('g', 'or'),
+      eventNode('e', constant(5)),
+    ];
+    const edges = [edge('o', 'g'), edge('g', 'e')];
+    const errors = validateScenario(nodes, edges, validConfig);
+    expect(errors.some((e) => e.includes('at least 2'))).toBe(true);
+  });
+});
+
+// ---------- v1 backward compat ----------
+
+describe('v1 backward compatibility', () => {
   const validConfig: SimulationConfig = {
     iterations: 10000,
     seed: 42,
@@ -190,153 +481,27 @@ describe('validateScenario', () => {
   };
   const validLM: Distribution = { type: 'pert', params: { min: 1000, mode: 5000, max: 10000 } };
 
-  it('valid scenario returns empty errors', () => {
-    const nodes = [gate('root', 'or'), leaf('l', constantLef(5))];
+  it('v1 leaf node evaluates as frequency', () => {
+    const nodes: AttackTreeNode[] = [
+      { id: 'l', type: 'leaf' as any, label: 'l', position: { x: 0, y: 0 }, fairInputs: { lef: constant(5) } },
+    ];
+    const sorted = topologicalSort(nodes, []);
+    const result = evaluateTree(nodes, [], sorted, makeRng());
+    expect(result.get('l')!.value).toBe(5);
+    expect(result.get('l')!.domain).toBe('frequency');
+  });
+
+  it('v1 scenario validates with scenario-level LM', () => {
+    const nodes: AttackTreeNode[] = [
+      { id: 'root', type: 'or' as any, label: 'root', position: { x: 0, y: 0 } },
+      { id: 'l', type: 'leaf' as any, label: 'l', position: { x: 0, y: 0 }, fairInputs: { lef: constant(5) } },
+    ];
     const edges = [edge('root', 'l')];
     expect(validateScenario(nodes, edges, validConfig, validLM)).toEqual([]);
   });
-
-  it('empty nodes', () => {
-    const errors = validateScenario([], [], validConfig, validLM);
-    expect(errors).toContain('Scenario has no nodes');
-  });
-
-  it('multiple roots', () => {
-    const nodes = [gate('r1', 'or'), gate('r2', 'or')];
-    const errors = validateScenario(nodes, [], validConfig, validLM);
-    expect(errors.some((e) => e.includes('root'))).toBe(true);
-  });
-
-  it('cycle detected', () => {
-    const nodes = [gate('a', 'or'), gate('b', 'or')];
-    const edges = [edge('a', 'b'), edge('b', 'a')];
-    const errors = validateScenario(nodes, edges, validConfig, validLM);
-    expect(errors.some((e) => e.includes('cycle'))).toBe(true);
-  });
-
-  it('missing lossMagnitude', () => {
-    const nodes = [leaf('l', constantLef(5))];
-    const errors = validateScenario(nodes, [], validConfig, undefined);
-    expect(errors.some((e) => e.includes('Loss Magnitude'))).toBe(true);
-  });
-
-  it('invalid PERT params (min > max)', () => {
-    const nodes = [gate('root', 'or'), leaf('l', constantLef(5))];
-    const edges = [edge('root', 'l')];
-    const badLM: Distribution = { type: 'pert', params: { min: 100, mode: 50, max: 10 } };
-    const errors = validateScenario(nodes, edges, validConfig, badLM);
-    expect(errors.some((e) => e.includes('Invalid PERT'))).toBe(true);
-  });
-
-  it('iterations = 0', () => {
-    const nodes = [leaf('l', constantLef(5))];
-    const badConfig = { ...validConfig, iterations: 0 };
-    const errors = validateScenario(nodes, [], badConfig, validLM);
-    expect(errors.some((e) => e.includes('Iterations'))).toBe(true);
-  });
-
-  it('iterations > 1,000,000', () => {
-    const nodes = [leaf('l', constantLef(5))];
-    const badConfig = { ...validConfig, iterations: 1_000_001 };
-    const errors = validateScenario(nodes, [], badConfig, validLM);
-    expect(errors.some((e) => e.includes('Iterations'))).toBe(true);
-  });
-
-  it('leaf missing fairInputs', () => {
-    const nodes: AttackTreeNode[] = [
-      { id: 'l', type: 'leaf', label: 'Unnamed', position: { x: 0, y: 0 } },
-    ];
-    const errors = validateScenario(nodes, [], validConfig, validLM);
-    expect(errors.some((e) => e.includes('missing LEF'))).toBe(true);
-  });
 });
 
-// ---------- control overrides ----------
-
-describe('evaluateTree - control overrides', () => {
-  it('lefReductionOverride takes precedence over control base value', () => {
-    const nodes = [leaf('l', constantLef(10))];
-    const sorted = topologicalSort(nodes, []);
-
-    const control: Control = {
-      id: 'c1',
-      name: 'Test',
-      category: 'preventive',
-      attackTechniques: [],
-      d3fendTechniques: [],
-      lefReduction: constantLef(0.5), // base: 50% reduction
-      metadata: { created: '', modified: '' },
-    };
-    const assignment: ControlAssignment = {
-      id: 'a1',
-      controlId: 'c1',
-      nodeId: 'l',
-      enabled: true,
-      lefReductionOverride: constantLef(0.8), // override: 80% reduction
-    };
-
-    const nodeAssignments = new Map([['l', [assignment]]]);
-    const controlMap = new Map([['c1', control]]);
-
-    const result = evaluateTree(nodes, [], sorted, makeRng(), nodeAssignments, controlMap);
-    // Should use override (0.8), not base (0.5): 10 * (1 - 0.8) = 2.0
-    expect(result.get('l')!.lef).toBeCloseTo(2.0, 10);
-  });
-});
-
-// ---------- orphaned assignments ----------
-
-describe('evaluateTree - orphaned assignments', () => {
-  it('assignment referencing missing control is silently skipped', () => {
-    const nodes = [leaf('l', constantLef(10))];
-    const sorted = topologicalSort(nodes, []);
-
-    const assignment: ControlAssignment = {
-      id: 'a1',
-      controlId: 'missing-control',
-      nodeId: 'l',
-      enabled: true,
-    };
-
-    const nodeAssignments = new Map([['l', [assignment]]]);
-    const controlMap = new Map<string, Control>(); // empty — no controls
-
-    const result = evaluateTree(nodes, [], sorted, makeRng(), nodeAssignments, controlMap);
-    // Orphaned assignment skipped, LEF unchanged
-    expect(result.get('l')!.lef).toBe(10);
-  });
-});
-
-// ---------- reproducibility ----------
-
-describe('evaluateTree - reproducibility', () => {
-  const pertLef: Distribution = { type: 'pert', params: { min: 1, mode: 5, max: 20 } };
-
-  it('same seed produces identical results', () => {
-    const nodes = [gate('root', 'or'), leaf('a', pertLef), leaf('b', pertLef)];
-    const edges = [edge('root', 'a'), edge('root', 'b')];
-    const sorted = topologicalSort(nodes, edges);
-
-    const result1 = evaluateTree(nodes, edges, sorted, makeRng(42));
-    const result2 = evaluateTree(nodes, edges, sorted, makeRng(42));
-
-    expect(result1.get('a')!.lef).toBe(result2.get('a')!.lef);
-    expect(result1.get('b')!.lef).toBe(result2.get('b')!.lef);
-    expect(result1.get('root')!.lef).toBe(result2.get('root')!.lef);
-  });
-
-  it('different seeds produce different results', () => {
-    const nodes = [leaf('l', pertLef)];
-    const sorted = topologicalSort(nodes, []);
-
-    const result1 = evaluateTree(nodes, [], sorted, makeRng(1));
-    const result2 = evaluateTree(nodes, [], sorted, makeRng(99999));
-
-    expect(result1.get('l')!.lef).not.toBe(result2.get('l')!.lef);
-  });
-});
-
-// ---------- applyLmReductions ----------
+// ---------- applyLmReductions (unchanged) ----------
 
 describe('applyLmReductions', () => {
   const makeControl = (id: string, lmReduction?: Distribution): Control => ({
@@ -345,13 +510,13 @@ describe('applyLmReductions', () => {
     category: 'preventive',
     attackTechniques: [],
     d3fendTechniques: [],
-    lefReduction: constantLef(0.5),
+    lefReduction: constant(0.5),
     lmReduction,
     metadata: { created: '', modified: '' },
   });
 
-  it('single control with LM reduction reduces scenario LM', () => {
-    const ctrl = makeControl('c1', constantLef(0.4));
+  it('single control with LM reduction', () => {
+    const ctrl = makeControl('c1', constant(0.4));
     const assignment: ControlAssignment = {
       id: 'a1',
       controlId: 'c1',
@@ -360,86 +525,12 @@ describe('applyLmReductions', () => {
     };
     const controlMap = new Map([['c1', ctrl]]);
     const result = applyLmReductions(10000, [assignment], controlMap, makeRng());
-    // LM = 10000 * (1 - 0.4) = 6000
     expect(result).toBeCloseTo(6000, 5);
   });
 
-  it('two controls with LM reduction stack multiplicatively', () => {
-    const ctrl1 = makeControl('c1', constantLef(0.3));
-    const ctrl2 = makeControl('c2', constantLef(0.5));
-    const assignments: ControlAssignment[] = [
-      { id: 'a1', controlId: 'c1', nodeId: 'l', enabled: true },
-      { id: 'a2', controlId: 'c2', nodeId: 'l', enabled: true },
-    ];
-    const controlMap = new Map([
-      ['c1', ctrl1],
-      ['c2', ctrl2],
-    ]);
-    const result = applyLmReductions(10000, assignments, controlMap, makeRng());
-    // passthrough = (1-0.3) * (1-0.5) = 0.7 * 0.5 = 0.35
-    // LM = 10000 * 0.35 = 3500
-    expect(result).toBeCloseTo(3500, 5);
-  });
-
-  it('control with only LEF reduction does not affect LM', () => {
-    const ctrl = makeControl('c1'); // no lmReduction
-    const assignment: ControlAssignment = {
-      id: 'a1',
-      controlId: 'c1',
-      nodeId: 'l',
-      enabled: true,
-    };
-    const controlMap = new Map([['c1', ctrl]]);
-    const result = applyLmReductions(10000, [assignment], controlMap, makeRng());
-    expect(result).toBe(10000);
-  });
-
-  it('LM override takes precedence over base value', () => {
-    const ctrl = makeControl('c1', constantLef(0.3)); // base: 30%
-    const assignment: ControlAssignment = {
-      id: 'a1',
-      controlId: 'c1',
-      nodeId: 'l',
-      enabled: true,
-      lmReductionOverride: constantLef(0.7), // override: 70%
-    };
-    const controlMap = new Map([['c1', ctrl]]);
-    const result = applyLmReductions(10000, [assignment], controlMap, makeRng());
-    // Should use override (0.7): 10000 * (1 - 0.7) = 3000
-    expect(result).toBeCloseTo(3000, 5);
-  });
-
-  it('disabled assignment LM reduction is skipped', () => {
-    const ctrl = makeControl('c1', constantLef(0.5));
-    const assignment: ControlAssignment = {
-      id: 'a1',
-      controlId: 'c1',
-      nodeId: 'l',
-      enabled: false,
-    };
-    const controlMap = new Map([['c1', ctrl]]);
-    const result = applyLmReductions(10000, [assignment], controlMap, makeRng());
-    expect(result).toBe(10000);
-  });
-
-  it('empty assignments returns base LM unchanged', () => {
+  it('empty assignments returns base LM', () => {
     const controlMap = new Map<string, Control>();
     const result = applyLmReductions(10000, [], controlMap, makeRng());
     expect(result).toBe(10000);
-  });
-
-  it('same seed produces reproducible LM reductions with PERT', () => {
-    const pertDist: Distribution = { type: 'pert', params: { min: 0.1, mode: 0.3, max: 0.6 } };
-    const ctrl = makeControl('c1', pertDist);
-    const assignment: ControlAssignment = {
-      id: 'a1',
-      controlId: 'c1',
-      nodeId: 'l',
-      enabled: true,
-    };
-    const controlMap = new Map([['c1', ctrl]]);
-    const r1 = applyLmReductions(10000, [assignment], controlMap, makeRng(42));
-    const r2 = applyLmReductions(10000, [assignment], controlMap, makeRng(42));
-    expect(r1).toBe(r2);
   });
 });

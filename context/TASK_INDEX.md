@@ -192,3 +192,9 @@
 | TASK-431 | Comprehensive security review (full app -- E4.5) | @secarch | pending | high | TASK-410..TASK-427 | @analyst, @test |
 | TASK-432 | Test coverage (unit + integration) | @test | pending | high | TASK-410..TASK-427 | @analyst, @secarch |
 | TASK-433 | Theme accessibility audit (WCAG contrast) | @ux | pending | medium | TASK-424, TASK-425 | @secarch, @test |
+
+## Phase 5: Testing Infrastructure
+
+| ID | Title | Assigned | Status | Priority | Depends On | Reviewers |
+|----|-------|----------|--------|----------|------------|-----------|
+| TASK-501 | Simulation test harness CLI (SPEC-SIMHARNESS) | @frontend | pending | medium | -- | @test, @secarch, @analyst |

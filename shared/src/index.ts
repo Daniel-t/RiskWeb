@@ -28,12 +28,21 @@ export interface FAIRInputs {
 
 // Attack tree types
 
+export type NodeType = 'outcome' | 'event' | 'and' | 'or' | 'condition' | 'leaf';
+
 export interface AttackTreeNode {
   id: string;
-  type: "leaf" | "and" | "or";
+  type: NodeType;
   label: string;
   position: { x: number; y: number };
+  /** @deprecated v1 compat — use tef/probability/lossMagnitude instead */
   fairInputs?: FAIRInputs;
+  /** Threat Event Frequency distribution (event nodes only) */
+  tef?: Distribution;
+  /** Probability distribution, clamped 0–1 (condition nodes only) */
+  probability?: Distribution;
+  /** Loss Magnitude distribution (outcome nodes only) */
+  lossMagnitude?: Distribution;
 }
 
 export interface Edge {
@@ -60,6 +69,8 @@ export interface SimulationResult {
     meanLEF: number;
     meanTEF?: number;
     meanVulnerability?: number;
+    meanProbability?: number;
+    domain?: 'frequency' | 'probability';
     percentiles: Record<number, number>;
   }>;
   iterations: number;
@@ -76,10 +87,12 @@ export interface Scenario {
   description?: string;
   nodes: AttackTreeNode[];
   edges: Edge[];
+  /** @deprecated v1 — LM now lives on the outcome node */
   lossMagnitude?: Distribution;
   controlAssignments?: ControlAssignment[];
   simulationConfig: SimulationConfig;
   results?: SimulationResult;
+  schemaVersion?: number;
   metadata: {
     created: string;
     modified: string;
@@ -170,7 +183,7 @@ export interface SensitivityRequest {
 export interface SensitivityItem {
   id: string;
   label: string;
-  category: 'control' | 'lef' | 'tef' | 'vulnerability' | 'lm' | 'lefReduction' | 'lmReduction';
+  category: 'control' | 'lef' | 'tef' | 'vulnerability' | 'probability' | 'lm' | 'lefReduction' | 'lmReduction';
   aleLow: number;
   aleHigh: number;
   delta: number;

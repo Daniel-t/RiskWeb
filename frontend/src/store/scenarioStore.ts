@@ -6,6 +6,7 @@ export interface ScenarioStore {
   name: string;
   savedName: string;
   description: string;
+  /** @deprecated v1 compat — in v2, LM lives on the outcome node */
   lossMagnitude: Distribution | undefined;
   simulationConfig: SimulationConfig;
   isDirty: boolean;

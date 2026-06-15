@@ -152,7 +152,9 @@ function runQuickSimulation(
   seed: number,
   iterations: number,
 ): number {
-  const { nodes, edges, lossMagnitude } = scenario;
+  const { nodes, edges } = scenario;
+  const outcomeNode = nodes.find((n) => n.type === 'outcome');
+  const lossMagnitude = outcomeNode?.lossMagnitude ?? scenario.lossMagnitude;
   const rng = mulberry32(seed);
   const sortedOrder = topologicalSort(nodes, edges);
 
@@ -173,14 +175,15 @@ function runQuickSimulation(
     }
   }
 
-  const rootId = sortedOrder[sortedOrder.length - 1];
+  const rootId = outcomeNode?.id ?? sortedOrder[sortedOrder.length - 1];
   let sum = 0;
 
   for (let k = 0; k < iterations; k++) {
     const iterResult = evaluateTree(nodes, edges, sortedOrder, rng, nodeAssignments, controlMap);
     const baseLm = sampleDistribution(lossMagnitude!, rng);
     const lm = applyLmReductions(baseLm, lmAssignments, controlMap, rng);
-    const rootLEF = iterResult.get(rootId)!.lef;
+    const rootResult = iterResult.get(rootId)!;
+    const rootLEF = rootResult.lef ?? rootResult.value;
     const ale = rootLEF * lm;
     sum += isFinite(ale) ? ale : 0;
   }
@@ -264,103 +267,173 @@ function collectInputDescriptors(scenario: Scenario, controls: Control[]): Input
   const descriptors: InputDescriptor[] = [];
   const controlMap = new Map<string, Control>();
   for (const c of controls) controlMap.set(c.id, c);
+  const isV2 = scenario.nodes.some((n) => n.type === 'outcome');
 
-  // Scenario LM
-  if (scenario.lossMagnitude) {
-    const lm = scenario.lossMagnitude;
-    descriptors.push({
-      id: 'scenario-lm',
-      label: 'Scenario LM',
-      category: 'lm',
-      getP10: () => getPercentile(lm, 0.1),
-      getP90: () => getPercentile(lm, 0.9),
-      getExpected: () => getExpectedValue(lm),
-      apply: (s, value) => ({
-        ...s,
-        lossMagnitude: { type: 'constant' as const, params: { value } },
-      }),
-    });
-  }
-
-  // Leaf node inputs
-  for (const node of scenario.nodes) {
-    if (node.type !== 'leaf' || !node.fairInputs) continue;
-
-    if (node.fairInputs.tef && node.fairInputs.vulnerability) {
-      const tef = node.fairInputs.tef;
-      const vuln = node.fairInputs.vulnerability;
+  if (isV2) {
+    // v2: LM from outcome node
+    const outcomeNode = scenario.nodes.find((n) => n.type === 'outcome');
+    if (outcomeNode?.lossMagnitude) {
+      const lm = outcomeNode.lossMagnitude;
       descriptors.push({
-        id: `${node.id}-tef`,
-        label: `${node.label} > TEF`,
-        category: 'tef',
-        getP10: () => getPercentile(tef, 0.1),
-        getP90: () => getPercentile(tef, 0.9),
-        getExpected: () => getExpectedValue(tef),
+        id: 'scenario-lm',
+        label: `${outcomeNode.label} > LM`,
+        category: 'lm',
+        getP10: () => getPercentile(lm, 0.1),
+        getP90: () => getPercentile(lm, 0.9),
+        getExpected: () => getExpectedValue(lm),
         apply: (s, value) => ({
           ...s,
           nodes: s.nodes.map((n) =>
-            n.id === node.id
-              ? {
-                  ...n,
-                  fairInputs: {
-                    ...n.fairInputs!,
-                    tef: { type: 'constant' as const, params: { value } },
-                  },
-                }
-              : n,
-          ),
-        }),
-      });
-      descriptors.push({
-        id: `${node.id}-vuln`,
-        label: `${node.label} > Vulnerability`,
-        category: 'vulnerability',
-        getP10: () => getPercentile(vuln, 0.1),
-        getP90: () => getPercentile(vuln, 0.9),
-        getExpected: () => getExpectedValue(vuln),
-        apply: (s, value) => ({
-          ...s,
-          nodes: s.nodes.map((n) =>
-            n.id === node.id
-              ? {
-                  ...n,
-                  fairInputs: {
-                    ...n.fairInputs!,
-                    vulnerability: { type: 'constant' as const, params: { value } },
-                  },
-                }
-              : n,
-          ),
-        }),
-      });
-    } else {
-      const lef = node.fairInputs.lef;
-      descriptors.push({
-        id: `${node.id}-lef`,
-        label: `${node.label} > LEF`,
-        category: 'lef',
-        getP10: () => getPercentile(lef, 0.1),
-        getP90: () => getPercentile(lef, 0.9),
-        getExpected: () => getExpectedValue(lef),
-        apply: (s, value) => ({
-          ...s,
-          nodes: s.nodes.map((n) =>
-            n.id === node.id
-              ? {
-                  ...n,
-                  fairInputs: {
-                    ...n.fairInputs!,
-                    lef: { type: 'constant' as const, params: { value } },
-                  },
-                }
+            n.id === outcomeNode.id
+              ? { ...n, lossMagnitude: { type: 'constant' as const, params: { value } } }
               : n,
           ),
         }),
       });
     }
+
+    // v2: event nodes (TEF)
+    for (const node of scenario.nodes) {
+      if (node.type === 'event') {
+        const tefDist = node.tef ?? node.fairInputs?.lef;
+        if (tefDist) {
+          descriptors.push({
+            id: `${node.id}-tef`,
+            label: `${node.label} > TEF`,
+            category: 'tef',
+            getP10: () => getPercentile(tefDist, 0.1),
+            getP90: () => getPercentile(tefDist, 0.9),
+            getExpected: () => getExpectedValue(tefDist),
+            apply: (s, value) => ({
+              ...s,
+              nodes: s.nodes.map((n) =>
+                n.id === node.id
+                  ? { ...n, tef: { type: 'constant' as const, params: { value } } }
+                  : n,
+              ),
+            }),
+          });
+        }
+      } else if (node.type === 'condition') {
+        const probDist = node.probability ?? node.fairInputs?.vulnerability;
+        if (probDist) {
+          descriptors.push({
+            id: `${node.id}-prob`,
+            label: `${node.label} > Probability`,
+            category: 'probability',
+            getP10: () => getPercentile(probDist, 0.1),
+            getP90: () => getPercentile(probDist, 0.9),
+            getExpected: () => getExpectedValue(probDist),
+            apply: (s, value) => ({
+              ...s,
+              nodes: s.nodes.map((n) =>
+                n.id === node.id
+                  ? { ...n, probability: { type: 'constant' as const, params: { value } } }
+                  : n,
+              ),
+            }),
+          });
+        }
+      }
+    }
+  } else {
+    // v1: Scenario-level LM
+    if (scenario.lossMagnitude) {
+      const lm = scenario.lossMagnitude;
+      descriptors.push({
+        id: 'scenario-lm',
+        label: 'Scenario LM',
+        category: 'lm',
+        getP10: () => getPercentile(lm, 0.1),
+        getP90: () => getPercentile(lm, 0.9),
+        getExpected: () => getExpectedValue(lm),
+        apply: (s, value) => ({
+          ...s,
+          lossMagnitude: { type: 'constant' as const, params: { value } },
+        }),
+      });
+    }
+
+    // v1: leaf node inputs
+    for (const node of scenario.nodes) {
+      if (node.type !== 'leaf' || !node.fairInputs) continue;
+
+      if (node.fairInputs.tef && node.fairInputs.vulnerability) {
+        const tef = node.fairInputs.tef;
+        const vuln = node.fairInputs.vulnerability;
+        descriptors.push({
+          id: `${node.id}-tef`,
+          label: `${node.label} > TEF`,
+          category: 'tef',
+          getP10: () => getPercentile(tef, 0.1),
+          getP90: () => getPercentile(tef, 0.9),
+          getExpected: () => getExpectedValue(tef),
+          apply: (s, value) => ({
+            ...s,
+            nodes: s.nodes.map((n) =>
+              n.id === node.id
+                ? {
+                    ...n,
+                    fairInputs: {
+                      ...n.fairInputs!,
+                      tef: { type: 'constant' as const, params: { value } },
+                    },
+                  }
+                : n,
+            ),
+          }),
+        });
+        descriptors.push({
+          id: `${node.id}-vuln`,
+          label: `${node.label} > Vulnerability`,
+          category: 'vulnerability',
+          getP10: () => getPercentile(vuln, 0.1),
+          getP90: () => getPercentile(vuln, 0.9),
+          getExpected: () => getExpectedValue(vuln),
+          apply: (s, value) => ({
+            ...s,
+            nodes: s.nodes.map((n) =>
+              n.id === node.id
+                ? {
+                    ...n,
+                    fairInputs: {
+                      ...n.fairInputs!,
+                      vulnerability: { type: 'constant' as const, params: { value } },
+                    },
+                  }
+                : n,
+            ),
+          }),
+        });
+      } else {
+        const lef = node.fairInputs.lef;
+        descriptors.push({
+          id: `${node.id}-lef`,
+          label: `${node.label} > LEF`,
+          category: 'lef',
+          getP10: () => getPercentile(lef, 0.1),
+          getP90: () => getPercentile(lef, 0.9),
+          getExpected: () => getExpectedValue(lef),
+          apply: (s, value) => ({
+            ...s,
+            nodes: s.nodes.map((n) =>
+              n.id === node.id
+                ? {
+                    ...n,
+                    fairInputs: {
+                      ...n.fairInputs!,
+                      lef: { type: 'constant' as const, params: { value } },
+                    },
+                  }
+                : n,
+            ),
+          }),
+        });
+      }
+    }
   }
 
-  // Control reduction inputs
+  // Control reduction inputs (same for v1 and v2)
   const assignedControlIds = new Set(
     (scenario.controlAssignments ?? []).filter((a) => a.enabled).map((a) => a.controlId),
   );
@@ -369,7 +442,7 @@ function collectInputDescriptors(scenario: Scenario, controls: Control[]): Input
     const lefRed = ctrl.lefReduction;
     descriptors.push({
       id: `${ctrl.id}-lefRed`,
-      label: `${ctrl.name} > LEF Reduction`,
+      label: `${ctrl.name} > Reduction`,
       category: 'lefReduction',
       getP10: () => getPercentile(lefRed, 0.1),
       getP90: () => getPercentile(lefRed, 0.9),
@@ -409,44 +482,85 @@ function collectInputDescriptors(scenario: Scenario, controls: Control[]): Input
 
 function fixAllInputsAtExpected(scenario: Scenario, controls: Control[]): Scenario {
   let s = { ...scenario };
+  const isV2 = s.nodes.some((n) => n.type === 'outcome');
 
-  // Fix LM
-  if (s.lossMagnitude) {
+  // Fix node inputs
+  s = {
+    ...s,
+    nodes: s.nodes.map((n) => {
+      if (isV2) {
+        if (n.type === 'outcome' && n.lossMagnitude) {
+          return {
+            ...n,
+            lossMagnitude: {
+              type: 'constant' as const,
+              params: { value: getExpectedValue(n.lossMagnitude) },
+            },
+          };
+        }
+        if (n.type === 'event') {
+          const tefDist = n.tef ?? n.fairInputs?.lef;
+          if (tefDist) {
+            return {
+              ...n,
+              tef: { type: 'constant' as const, params: { value: getExpectedValue(tefDist) } },
+            };
+          }
+        }
+        if (n.type === 'condition') {
+          const probDist = n.probability ?? n.fairInputs?.vulnerability;
+          if (probDist) {
+            return {
+              ...n,
+              probability: {
+                type: 'constant' as const,
+                params: { value: getExpectedValue(probDist) },
+              },
+            };
+          }
+        }
+        return n;
+      }
+
+      // v1 path
+      if (n.type === 'leaf' && n.fairInputs) {
+        if (n.fairInputs.tef && n.fairInputs.vulnerability) {
+          return {
+            ...n,
+            fairInputs: {
+              lef: n.fairInputs.lef,
+              tef: {
+                type: 'constant' as const,
+                params: { value: getExpectedValue(n.fairInputs.tef) },
+              },
+              vulnerability: {
+                type: 'constant' as const,
+                params: { value: getExpectedValue(n.fairInputs.vulnerability) },
+              },
+            },
+          };
+        }
+        return {
+          ...n,
+          fairInputs: {
+            lef: {
+              type: 'constant' as const,
+              params: { value: getExpectedValue(n.fairInputs.lef) },
+            },
+          },
+        };
+      }
+      return n;
+    }),
+  };
+
+  // Fix scenario-level LM (v1 only)
+  if (!isV2 && s.lossMagnitude) {
     s = {
       ...s,
       lossMagnitude: { type: 'constant', params: { value: getExpectedValue(s.lossMagnitude) } },
     };
   }
-
-  // Fix all leaf inputs
-  s = {
-    ...s,
-    nodes: s.nodes.map((n) => {
-      if (n.type !== 'leaf' || !n.fairInputs) return n;
-      if (n.fairInputs.tef && n.fairInputs.vulnerability) {
-        return {
-          ...n,
-          fairInputs: {
-            lef: n.fairInputs.lef,
-            tef: {
-              type: 'constant' as const,
-              params: { value: getExpectedValue(n.fairInputs.tef) },
-            },
-            vulnerability: {
-              type: 'constant' as const,
-              params: { value: getExpectedValue(n.fairInputs.vulnerability) },
-            },
-          },
-        };
-      }
-      return {
-        ...n,
-        fairInputs: {
-          lef: { type: 'constant' as const, params: { value: getExpectedValue(n.fairInputs.lef) } },
-        },
-      };
-    }),
-  };
 
   // Fix control reductions at expected
   const controlMap = new Map<string, Control>();

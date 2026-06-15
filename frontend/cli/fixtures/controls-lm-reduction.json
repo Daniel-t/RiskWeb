@@ -1,0 +1,55 @@
+{
+  "name": "Control with LM reduction",
+  "description": "Single leaf with a control applying 30% LM reduction. Tests loss magnitude reduction path.",
+  "scenario": {
+    "id": "test-ctrl-lm",
+    "name": "LM Reduction Test",
+    "nodes": [
+      {
+        "id": "leaf1",
+        "type": "leaf",
+        "label": "Attack Vector",
+        "position": { "x": 0, "y": 0 },
+        "fairInputs": {
+          "lef": { "type": "constant", "params": { "value": 5 } }
+        }
+      }
+    ],
+    "edges": [],
+    "lossMagnitude": { "type": "constant", "params": { "value": 100000 } },
+    "controlAssignments": [
+      {
+        "id": "ca-1",
+        "controlId": "ctrl-1",
+        "nodeId": "leaf1",
+        "enabled": true
+      }
+    ],
+    "simulationConfig": {
+      "iterations": 5000,
+      "seed": 42,
+      "confidenceIntervals": [0.1, 0.5, 0.9]
+    },
+    "metadata": { "created": "2026-01-01T00:00:00.000Z", "modified": "2026-01-01T00:00:00.000Z" }
+  },
+  "controls": [
+    {
+      "id": "ctrl-1",
+      "name": "Encryption",
+      "category": "preventive",
+      "attackTechniques": [],
+      "d3fendTechniques": [],
+      "lefReduction": { "type": "constant", "params": { "value": 0 } },
+      "lmReduction": { "type": "constant", "params": { "value": 0.3 } },
+      "metadata": { "created": "2026-01-01T00:00:00.000Z", "modified": "2026-01-01T00:00:00.000Z" }
+    }
+  ],
+  "expected": {
+    "simulation": {
+      "mean": { "min": 349000, "max": 351000 }
+    },
+    "baseline": {
+      "mean": { "min": 499000, "max": 501000 }
+    }
+  }
+}

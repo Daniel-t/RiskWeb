@@ -177,7 +177,7 @@ export function validateScenario(data: unknown): ValidationResult {
       continue;
     }
     if (typeof node.id !== 'string') errors.push(`nodes[${i}]: missing id`);
-    if (!['leaf', 'and', 'or'].includes(node.type as string))
+    if (!['leaf', 'and', 'or', 'outcome', 'event', 'condition'].includes(node.type as string))
       errors.push(`nodes[${i}]: invalid type '${node.type}'`);
     if (typeof node.label !== 'string') errors.push(`nodes[${i}]: missing label`);
   }

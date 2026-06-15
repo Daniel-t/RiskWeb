@@ -1,0 +1,58 @@
+{
+  "name": "AND gate with TEF x Vulnerability decomposition",
+  "description": "AND gate with two leaves using TEF x Vulnerability. Tests frequency decomposition and AND aggregation.",
+  "scenario": {
+    "id": "test-and-tef-vuln",
+    "name": "AND Gate TEF-Vuln Test",
+    "nodes": [
+      {
+        "id": "root",
+        "type": "and",
+        "label": "Root AND",
+        "position": { "x": 200, "y": 0 }
+      },
+      {
+        "id": "leaf1",
+        "type": "leaf",
+        "label": "Exploit Attempt",
+        "position": { "x": 100, "y": 200 },
+        "fairInputs": {
+          "lef": { "type": "constant", "params": { "value": 0 } },
+          "tef": { "type": "pert", "params": { "min": 5, "mode": 10, "max": 30 } },
+          "vulnerability": { "type": "pert", "params": { "min": 0.1, "mode": 0.3, "max": 0.6 } }
+        }
+      },
+      {
+        "id": "leaf2",
+        "type": "leaf",
+        "label": "Insider Threat",
+        "position": { "x": 300, "y": 200 },
+        "fairInputs": {
+          "lef": { "type": "pert", "params": { "min": 0.5, "mode": 1, "max": 3 } }
+        }
+      }
+    ],
+    "edges": [
+      { "id": "e1", "sourceId": "root", "targetId": "leaf1" },
+      { "id": "e2", "sourceId": "root", "targetId": "leaf2" }
+    ],
+    "lossMagnitude": { "type": "constant", "params": { "value": 100000 } },
+    "simulationConfig": {
+      "iterations": 20000,
+      "seed": 42,
+      "confidenceIntervals": [0.1, 0.5, 0.9]
+    },
+    "metadata": { "created": "2026-01-01T00:00:00.000Z", "modified": "2026-01-01T00:00:00.000Z" }
+  },
+  "expected": {
+    "simulation": {
+      "perNode": {
+        "leaf1": {
+          "meanTEF": { "min": 8, "max": 16 },
+          "meanVulnerability": { "min": 0.2, "max": 0.4 }
+        },
+        "leaf2": { "meanLEF": { "min": 0.8, "max": 1.7 } }
+      }
+    }
+  }
+}

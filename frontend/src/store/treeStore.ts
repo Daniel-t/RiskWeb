@@ -10,12 +10,24 @@ import {
   MarkerType,
 } from '@xyflow/react';
 import dagre from '@dagrejs/dagre';
-import type { AttackTreeNode, Edge as SharedEdge, FAIRInputs, Distribution } from '@shared/index';
+import type {
+  AttackTreeNode,
+  Edge as SharedEdge,
+  FAIRInputs,
+  Distribution,
+  NodeType,
+} from '@shared/index';
+
+export type TreeNodeType = NodeType | 'leaf';
 
 export interface TreeNodeData {
   label: string;
-  nodeType: 'leaf' | 'and' | 'or';
+  nodeType: TreeNodeType;
+  /** @deprecated v1 compat — use tef/probability/lossMagnitude instead */
   fairInputs?: FAIRInputs;
+  tef?: Distribution;
+  probability?: Distribution;
+  lossMagnitude?: Distribution;
   [key: string]: unknown;
 }
 
@@ -29,8 +41,22 @@ const SELECTED_EDGE_STYLE = {
   strokeWidth: 3,
 };
 
-function toRFNodeType(type: 'leaf' | 'and' | 'or'): string {
-  return type === 'leaf' ? 'leaf' : 'gate';
+function toRFNodeType(type: string): string {
+  switch (type) {
+    case 'outcome':
+      return 'outcome';
+    case 'event':
+      return 'event';
+    case 'condition':
+      return 'condition';
+    case 'and':
+    case 'or':
+      return 'gate';
+    case 'leaf':
+      return 'leaf';
+    default:
+      return 'leaf';
+  }
 }
 
 function sharedToRFNodes(nodes: AttackTreeNode[]): Node<TreeNodeData>[] {
@@ -40,8 +66,11 @@ function sharedToRFNodes(nodes: AttackTreeNode[]): Node<TreeNodeData>[] {
     position: n.position,
     data: {
       label: n.label,
-      nodeType: n.type,
+      nodeType: n.type as TreeNodeType,
       fairInputs: n.fairInputs,
+      tef: n.tef,
+      probability: n.probability,
+      lossMagnitude: n.lossMagnitude,
     },
   }));
 }
@@ -60,10 +89,13 @@ function sharedToRFEdges(edges: SharedEdge[]): RFEdge[] {
 export function rfToSharedNodes(nodes: Node<TreeNodeData>[]): AttackTreeNode[] {
   return nodes.map((n) => ({
     id: n.id,
-    type: n.data.nodeType,
+    type: n.data.nodeType as NodeType,
     label: n.data.label,
     position: { x: n.position.x, y: n.position.y },
-    fairInputs: n.data.fairInputs,
+    ...(n.data.fairInputs && { fairInputs: n.data.fairInputs }),
+    ...(n.data.tef && { tef: n.data.tef }),
+    ...(n.data.probability && { probability: n.data.probability }),
+    ...(n.data.lossMagnitude && { lossMagnitude: n.data.lossMagnitude }),
   }));
 }
 
@@ -103,7 +135,7 @@ export interface TreeStore {
   onEdgesChange: OnEdgesChange;
   setSelectedNodeId: (id: string | null) => void;
 
-  addNode: (type: 'leaf' | 'and' | 'or', position: { x: number; y: number }) => string;
+  addNode: (type: TreeNodeType, position: { x: number; y: number }) => string;
   removeNode: (id: string) => void;
   removeNodeAndDescendants: (id: string) => void;
   duplicateNode: (id: string) => void;
@@ -111,6 +143,9 @@ export interface TreeStore {
   updateNodeLabel: (id: string, label: string) => void;
   updateNodeType: (id: string, type: 'and' | 'or') => void;
   updateFairInputs: (id: string, fairInputs: FAIRInputs) => void;
+  updateTEF: (id: string, tef: Distribution) => void;
+  updateProbability: (id: string, probability: Distribution) => void;
+  updateNodeLM: (id: string, lossMagnitude: Distribution) => void;
 
   canConnect: (connection: Connection) => boolean;
   addEdge: (connection: Connection) => void;
@@ -143,7 +178,14 @@ export const useTreeStore = create<TreeStore>((set, get) => ({
 
   addNode: (type, position) => {
     const id = crypto.randomUUID();
-    const defaultLabels = { leaf: 'New Leaf', and: 'AND Gate', or: 'OR Gate' };
+    const defaultLabels: Record<TreeNodeType, string> = {
+      outcome: 'Outcome',
+      event: 'Threat Event',
+      condition: 'Condition',
+      and: 'AND Gate',
+      or: 'OR Gate',
+      leaf: 'New Leaf',
+    };
     const node: Node<TreeNodeData> = {
       id,
       type: toRFNodeType(type),
@@ -218,6 +260,18 @@ export const useTreeStore = create<TreeStore>((set, get) => ({
     get().updateNodeData(id, { fairInputs });
   },
 
+  updateTEF: (id, tef) => {
+    get().updateNodeData(id, { tef });
+  },
+
+  updateProbability: (id, probability) => {
+    get().updateNodeData(id, { probability });
+  },
+
+  updateNodeLM: (id, lossMagnitude) => {
+    get().updateNodeData(id, { lossMagnitude });
+  },
+
   canConnect: (connection) => {
     const { nodes, edges } = get();
     const { source, target } = connection;
@@ -230,9 +284,21 @@ export const useTreeStore = create<TreeStore>((set, get) => ({
     // No multiple parents (target already has an incoming edge)
     if (edges.some((e) => e.target === target)) return false;
 
-    // Leaf nodes cannot be parents (source cannot be a leaf)
     const sourceNode = nodes.find((n) => n.id === source);
-    if (sourceNode?.data.nodeType === 'leaf') return false;
+    const targetNode = nodes.find((n) => n.id === target);
+    if (!sourceNode || !targetNode) return false;
+
+    // Event and leaf nodes cannot be parents (always leaves at bottom)
+    if (sourceNode.data.nodeType === 'event' || sourceNode.data.nodeType === 'leaf') return false;
+
+    // Outcome node cannot be a child (always root)
+    if (targetNode.data.nodeType === 'outcome') return false;
+
+    // Condition nodes can have at most 1 child
+    if (sourceNode.data.nodeType === 'condition') {
+      const existingChildren = edges.filter((e) => e.source === source);
+      if (existingChildren.length >= 1) return false;
+    }
 
     // No cycles: check if adding this edge would create a cycle
     const adjacency = new Map<string, string[]>();
@@ -299,8 +365,16 @@ export const useTreeStore = create<TreeStore>((set, get) => ({
     g.setGraph({ rankdir: 'TB', nodesep: 60, ranksep: 80 });
 
     for (const node of nodes) {
-      const w = node.data.nodeType === 'leaf' ? 160 : 120;
-      const h = node.data.nodeType === 'leaf' ? 60 : 50;
+      let w = 120;
+      let h = 50;
+      const nt = node.data.nodeType;
+      if (nt === 'outcome') {
+        w = 180;
+        h = 60;
+      } else if (nt === 'event' || nt === 'condition' || nt === 'leaf') {
+        w = 160;
+        h = 60;
+      }
       g.setNode(node.id, { width: w, height: h });
     }
     for (const edge of edges) {
@@ -312,8 +386,16 @@ export const useTreeStore = create<TreeStore>((set, get) => ({
     set({
       nodes: nodes.map((node) => {
         const pos = g.node(node.id);
-        const w = node.data.nodeType === 'leaf' ? 160 : 120;
-        const h = node.data.nodeType === 'leaf' ? 60 : 50;
+        const nt = node.data.nodeType;
+        let w = 120;
+        let h = 50;
+        if (nt === 'outcome') {
+          w = 180;
+          h = 60;
+        } else if (nt === 'event' || nt === 'condition' || nt === 'leaf') {
+          w = 160;
+          h = 60;
+        }
         return {
           ...node,
           position: { x: pos.x - w / 2, y: pos.y - h / 2 },
@@ -331,43 +413,101 @@ export const useTreeStore = create<TreeStore>((set, get) => ({
       return errors;
     }
 
-    // Single root check
     const nodesWithParent = new Set(edges.map((e) => e.target));
     const roots = nodes.filter((n) => !nodesWithParent.has(n.id));
-    if (roots.length === 0) {
-      errors.push('Tree must have exactly one root node');
-    } else if (roots.length > 1) {
-      errors.push('Tree must have exactly one root node');
-    }
+    const isV2 = nodes.some((n) => n.data.nodeType === 'outcome');
 
-    // Leaves must have FAIR inputs
-    for (const node of nodes) {
-      if (node.data.nodeType === 'leaf') {
-        if (!node.data.fairInputs) {
-          errors.push(`Node '${node.data.label}' is missing FAIR inputs`);
-        } else if (node.data.fairInputs.tef && node.data.fairInputs.vulnerability) {
-          errors.push(...validateDistribution(node.data.fairInputs.tef, node.data.label, 'TEF'));
-          errors.push(
-            ...validateDistribution(
-              node.data.fairInputs.vulnerability,
-              node.data.label,
-              'Vulnerability',
-            ),
-          );
-        } else if (node.data.fairInputs.tef || node.data.fairInputs.vulnerability) {
-          errors.push(`Node '${node.data.label}': TEF and Vulnerability must both be defined`);
+    if (isV2) {
+      // --- v2 validation ---
+      if (roots.length !== 1) {
+        errors.push('Tree must have exactly one root node');
+      }
+
+      const outcomes = nodes.filter((n) => n.data.nodeType === 'outcome');
+      if (outcomes.length !== 1) {
+        errors.push('Scenario must have exactly one outcome node');
+      }
+
+      const outcome = outcomes[0];
+      if (outcome) {
+        if (nodesWithParent.has(outcome.id)) {
+          errors.push('Outcome node must be the root (no parent)');
+        }
+        if (!outcome.data.lossMagnitude) {
+          errors.push('Outcome node is missing Loss Magnitude distribution');
         } else {
-          errors.push(...validateDistribution(node.data.fairInputs.lef, node.data.label, 'LEF'));
+          errors.push(
+            ...validateDistribution(outcome.data.lossMagnitude, outcome.data.label, 'LM'),
+          );
         }
       }
-    }
 
-    // Gates must have children
-    for (const node of nodes) {
-      if (node.data.nodeType === 'and' || node.data.nodeType === 'or') {
+      for (const node of nodes) {
         const children = edges.filter((e) => e.source === node.id);
-        if (children.length === 0) {
-          errors.push(`Gate '${node.data.label}' has no children`);
+
+        if (node.data.nodeType === 'event') {
+          if (children.length > 0) {
+            errors.push(`Event node '${node.data.label}' must be a leaf (no children)`);
+          }
+          const tefDist = node.data.tef ?? node.data.fairInputs?.lef;
+          if (!tefDist) {
+            errors.push(`Event node '${node.data.label}' is missing TEF distribution`);
+          } else {
+            errors.push(...validateDistribution(tefDist, node.data.label, 'TEF'));
+          }
+        } else if (node.data.nodeType === 'condition') {
+          if (children.length > 1) {
+            errors.push(`Condition node '${node.data.label}' can have at most 1 child`);
+          }
+          const probDist = node.data.probability ?? node.data.fairInputs?.vulnerability;
+          if (probDist) {
+            errors.push(...validateDistribution(probDist, node.data.label, 'Probability'));
+          }
+        } else if (node.data.nodeType === 'and' || node.data.nodeType === 'or') {
+          if (children.length < 2) {
+            errors.push(`Gate '${node.data.label}' must have at least 2 children`);
+          }
+        }
+      }
+    } else {
+      // --- v1 validation ---
+      if (roots.length !== 1) {
+        errors.push('Tree must have exactly one root node');
+      }
+
+      for (const node of nodes) {
+        if (node.data.nodeType === 'leaf') {
+          if (!node.data.fairInputs) {
+            errors.push(`Node '${node.data.label}' is missing FAIR inputs`);
+          } else if (node.data.fairInputs.tef && node.data.fairInputs.vulnerability) {
+            errors.push(
+              ...validateDistribution(node.data.fairInputs.tef, node.data.label, 'TEF'),
+            );
+            errors.push(
+              ...validateDistribution(
+                node.data.fairInputs.vulnerability,
+                node.data.label,
+                'Vulnerability',
+              ),
+            );
+          } else if (node.data.fairInputs.tef || node.data.fairInputs.vulnerability) {
+            errors.push(
+              `Node '${node.data.label}': TEF and Vulnerability must both be defined`,
+            );
+          } else {
+            errors.push(
+              ...validateDistribution(node.data.fairInputs.lef, node.data.label, 'LEF'),
+            );
+          }
+        }
+      }
+
+      for (const node of nodes) {
+        if (node.data.nodeType === 'and' || node.data.nodeType === 'or') {
+          const children = edges.filter((e) => e.source === node.id);
+          if (children.length === 0) {
+            errors.push(`Gate '${node.data.label}' has no children`);
+          }
         }
       }
     }
@@ -380,25 +520,48 @@ export const useTreeStore = create<TreeStore>((set, get) => ({
     const node = nodes.find((n) => n.id === id);
     if (!node) return 'warning';
 
-    if (node.data.nodeType === 'leaf') {
-      if (!node.data.fairInputs) return 'warning';
-      if (node.data.fairInputs.tef && node.data.fairInputs.vulnerability) {
-        const tefErrors = validateDistribution(node.data.fairInputs.tef, '', 'TEF');
-        const vulnErrors = validateDistribution(
-          node.data.fairInputs.vulnerability,
-          '',
-          'Vulnerability',
-        );
-        return tefErrors.length === 0 && vulnErrors.length === 0 ? 'valid' : 'warning';
-      }
-      if (node.data.fairInputs.tef || node.data.fairInputs.vulnerability) return 'warning';
-      const lefErrors = validateDistribution(node.data.fairInputs.lef, '', 'LEF');
-      return lefErrors.length === 0 ? 'valid' : 'warning';
-    }
-
-    // Gate: must have children
     const children = edges.filter((e) => e.source === node.id);
-    return children.length > 0 ? 'valid' : 'warning';
+
+    switch (node.data.nodeType) {
+      case 'outcome': {
+        if (!node.data.lossMagnitude) return 'warning';
+        return validateDistribution(node.data.lossMagnitude, '', 'LM').length === 0
+          ? 'valid'
+          : 'warning';
+      }
+      case 'event': {
+        const tefDist = node.data.tef ?? node.data.fairInputs?.lef;
+        if (!tefDist) return 'warning';
+        return validateDistribution(tefDist, '', 'TEF').length === 0 ? 'valid' : 'warning';
+      }
+      case 'condition': {
+        if (children.length > 1) return 'warning';
+        const probDist = node.data.probability ?? node.data.fairInputs?.vulnerability;
+        if (probDist) {
+          return validateDistribution(probDist, '', 'P').length === 0 ? 'valid' : 'warning';
+        }
+        return 'valid';
+      }
+      case 'and':
+      case 'or':
+        return children.length >= 2 ? 'valid' : 'warning';
+      case 'leaf':
+      default: {
+        if (!node.data.fairInputs) return 'warning';
+        if (node.data.fairInputs.tef && node.data.fairInputs.vulnerability) {
+          const tefErrors = validateDistribution(node.data.fairInputs.tef, '', 'TEF');
+          const vulnErrors = validateDistribution(
+            node.data.fairInputs.vulnerability,
+            '',
+            'Vulnerability',
+          );
+          return tefErrors.length === 0 && vulnErrors.length === 0 ? 'valid' : 'warning';
+        }
+        if (node.data.fairInputs.tef || node.data.fairInputs.vulnerability) return 'warning';
+        const lefErrors = validateDistribution(node.data.fairInputs.lef, '', 'LEF');
+        return lefErrors.length === 0 ? 'valid' : 'warning';
+      }
+    }
   },
 
   getRootNodes: () => {

@@ -1,0 +1,28 @@
+{
+  "name": "OAT sweep sensitivity analysis",
+  "description": "Sweeps PERT-distributed inputs one at a time. All sweepable inputs should produce non-zero deltas.",
+  "scenario": {
+    "id": "test-sens-oat",
+    "name": "Sensitivity OAT Test",
+    "nodes": [
+      {
+        "id": "leaf1",
+        "type": "leaf",
+        "label": "Attack",
+        "position": { "x": 0, "y": 0 },
+        "fairInputs": {
+          "lef": { "type": "pert", "params": { "min": 1, "mode": 5, "max": 20 } }
+        }
+      }
+    ],
+    "edges": [],
+    "lossMagnitude": { "type": "pert", "params": { "min": 10000, "mode": 50000, "max": 200000 } },
+    "simulationConfig": {
+      "iterations": 5000,
+      "seed": 42,
+      "confidenceIntervals": [0.5]
+    },
+    "metadata": { "created": "2026-01-01T00:00:00.000Z", "modified": "2026-01-01T00:00:00.000Z" }
+  },
+  "sensitivity": { "oatSweep": true }
+}

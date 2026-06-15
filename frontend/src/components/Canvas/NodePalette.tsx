@@ -2,25 +2,44 @@ import type { DragEvent } from 'react';
 
 const nodeTypes = [
   {
-    type: 'leaf',
-    label: 'Leaf Node',
-    icon: '&#9645;',
+    type: 'outcome',
+    label: 'Outcome',
     color: 'var(--node-leaf)',
     border: 'var(--border-panel)',
+    icon: '\u25C9',
+    radius: 6,
+  },
+  {
+    type: 'event',
+    label: 'Threat Event',
+    color: 'var(--node-leaf)',
+    border: 'var(--border-panel)',
+    icon: '\u26A1',
+    radius: 4,
+  },
+  {
+    type: 'condition',
+    label: 'Condition',
+    color: 'var(--node-leaf)',
+    border: 'var(--border-panel)',
+    icon: '?',
+    radius: 4,
   },
   {
     type: 'and',
     label: 'AND Gate',
-    icon: '&amp;',
     color: 'var(--node-and)',
     border: 'var(--node-and-border)',
+    icon: '&',
+    radius: 2,
   },
   {
     type: 'or',
     label: 'OR Gate',
-    icon: '|',
     color: 'var(--node-or)',
     border: 'var(--node-or-border)',
+    icon: '|',
+    radius: 6,
   },
 ] as const;
 
@@ -36,7 +55,7 @@ export function NodePalette() {
         Node Palette
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {nodeTypes.map(({ type, label, color, border }) => (
+        {nodeTypes.map(({ type, label, color, border, icon, radius }) => (
           <div
             key={type}
             draggable
@@ -60,7 +79,7 @@ export function NodePalette() {
                 width: 28,
                 height: 28,
                 border: `1px solid ${border}`,
-                borderRadius: type === 'or' ? 6 : type === 'and' ? 2 : 4,
+                borderRadius: radius,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -70,7 +89,7 @@ export function NodePalette() {
                 background: 'var(--bg-popover)',
               }}
             >
-              {type === 'and' ? '&' : type === 'or' ? '|' : '\u25A2'}
+              {icon}
             </div>
             {label}
           </div>

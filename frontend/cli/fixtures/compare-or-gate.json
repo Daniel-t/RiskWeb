@@ -1,0 +1,45 @@
+{
+  "name": "Compare: OR gate (two leaves, identical params)",
+  "description": "OR gate with two PERT leaves. Identical to compare-and-gate except gate type.",
+  "scenario": {
+    "id": "compare-or",
+    "name": "Compare OR Gate",
+    "nodes": [
+      {
+        "id": "root",
+        "type": "or",
+        "label": "Root OR",
+        "position": { "x": 200, "y": 0 }
+      },
+      {
+        "id": "leaf1",
+        "type": "leaf",
+        "label": "Attack Path A",
+        "position": { "x": 100, "y": 200 },
+        "fairInputs": {
+          "lef": { "type": "pert", "params": { "min": 1, "mode": 5, "max": 20 } }
+        }
+      },
+      {
+        "id": "leaf2",
+        "type": "leaf",
+        "label": "Attack Path B",
+        "position": { "x": 300, "y": 200 },
+        "fairInputs": {
+          "lef": { "type": "pert", "params": { "min": 0.5, "mode": 2, "max": 8 } }
+        }
+      }
+    ],
+    "edges": [
+      { "id": "e1", "sourceId": "root", "targetId": "leaf1" },
+      { "id": "e2", "sourceId": "root", "targetId": "leaf2" }
+    ],
+    "lossMagnitude": { "type": "pert", "params": { "min": 10000, "mode": 50000, "max": 200000 } },
+    "simulationConfig": {
+      "iterations": 50000,
+      "seed": 42,
+      "confidenceIntervals": [0.1, 0.5, 0.9]
+    },
+    "metadata": { "created": "2026-01-01T00:00:00.000Z", "modified": "2026-01-01T00:00:00.000Z" }
+  }
+}

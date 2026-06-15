@@ -1,5 +1,6 @@
 import type { Control, Scenario } from '@shared/index';
 import { isValidControl, validateScenario } from './validate';
+import { migrateV1toV2 } from './migration';
 
 export interface ImportResult {
   scenario: Scenario;
@@ -58,8 +59,10 @@ export function parseAndValidateImport(jsonString: string): ImportResult {
     throw new Error('Invalid scenario file:\n' + result.errors.join('\n'));
   }
 
+  const migrated = migrateV1toV2(result.scenario!);
+
   return {
-    scenario: result.scenario!,
+    scenario: migrated,
     importedControls: exportedControls,
     skippedControls: 0,
     warnings: result.warnings,
