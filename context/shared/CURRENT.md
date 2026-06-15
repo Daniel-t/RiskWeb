@@ -87,6 +87,13 @@ Backend removed. Shared types remain in `shared/src/index.ts`. Client-side equiv
 - **TASK-403 DEFERRED**: PDF report generation (future wave)
 - **TASK-406 DEFERRED**: Performance optimization (future wave)
 
+## SPEC-CONTROLCHART (approved 2026-06-15)
+- **Bidirectional Control Impact + Shapley Attribution** charts
+- Replaces current controlToggle tornado in Sensitivity panel
+- Three tabs: Control Impact, Shapley Attribution, Input Sensitivity
+- Spec: `context/analyst/spec-control-chart-bidirectional.md`
+- Awaiting task assignment and @frontend implementation
+
 ## Blockers
 None
 

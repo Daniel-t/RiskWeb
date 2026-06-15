@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useRef } from 'react';
-import type { Scenario, SimulationResult, SensitivityResult, Control } from '@shared/index';
+import type {
+  Scenario,
+  SimulationResult,
+  SensitivityResult,
+  ControlImpactResult,
+  ShapleyResult,
+  Control,
+} from '@shared/index';
 import { useSimulationStore } from '../store/simulationStore';
 
 interface WorkerProgressMessage {
@@ -28,7 +35,7 @@ interface WorkerSensitivityProgressMessage {
 
 interface WorkerSensitivityCompleteMessage {
   type: 'sensitivityComplete';
-  result: SensitivityResult;
+  result: SensitivityResult | ControlImpactResult | ShapleyResult;
 }
 
 type WorkerOutMessage =
@@ -47,6 +54,8 @@ export function useSimulation() {
     sensitivityRunning,
     sensitivityProgress,
     setSensitivityResult,
+    setControlImpactResult,
+    setShapleyResult,
     setSensitivityRunning,
     setSensitivityProgress,
   } = useSimulationStore();
@@ -100,7 +109,11 @@ export function useSimulation() {
   );
 
   const runSensitivity = useCallback(
-    (scenario: Scenario, controls: Control[], sensitivityType: 'controlToggle' | 'oatSweep') => {
+    (
+      scenario: Scenario,
+      controls: Control[],
+      sensitivityType: 'controlToggle' | 'oatSweep' | 'controlBidirectional' | 'shapley',
+    ) => {
       // Use a separate worker for sensitivity so it doesn't conflict
       const worker = createWorker();
       setSensitivityRunning(true);
@@ -113,7 +126,13 @@ export function useSimulation() {
             setSensitivityProgress(msg.percent);
             break;
           case 'sensitivityComplete':
-            setSensitivityResult(msg.result);
+            if (msg.result.type === 'controlBidirectional') {
+              setControlImpactResult(msg.result as ControlImpactResult);
+            } else if (msg.result.type === 'shapley') {
+              setShapleyResult(msg.result as ShapleyResult);
+            } else {
+              setSensitivityResult(msg.result as SensitivityResult);
+            }
             setSensitivityRunning(false);
             worker.terminate();
             break;
@@ -128,7 +147,14 @@ export function useSimulation() {
       const seed = scenario.simulationConfig.seed ?? Math.floor(Math.random() * 2 ** 32);
       worker.postMessage({ type: 'sensitivity', sensitivityType, scenario, controls, seed });
     },
-    [createWorker, setSensitivityRunning, setSensitivityProgress, setSensitivityResult],
+    [
+      createWorker,
+      setSensitivityRunning,
+      setSensitivityProgress,
+      setSensitivityResult,
+      setControlImpactResult,
+      setShapleyResult,
+    ],
   );
 
   const cancel = useCallback(() => {

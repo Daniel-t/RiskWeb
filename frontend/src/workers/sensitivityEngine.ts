@@ -5,6 +5,10 @@ import type {
   SensitivityItem,
   SensitivityResult,
   ControlAssignment,
+  ControlImpactItem,
+  ControlImpactResult,
+  ShapleyItem,
+  ShapleyResult,
 } from '@shared/index';
 import { topologicalSort, evaluateTree, applyLmReductions } from './fairEngine';
 import { sampleDistribution } from './distributions';
@@ -653,6 +657,275 @@ export function runOATSweep(
     type: 'oatSweep',
     baselineALE,
     items,
+    duration: performance.now() - startTime,
+  };
+}
+
+// ── Bidirectional Control Impact ──────────────────────────────────────────
+
+export function runControlBidirectional(
+  scenario: Scenario,
+  controls: Control[],
+  seed: number,
+  onProgress?: (completed: number, total: number) => void,
+): ControlImpactResult {
+  const startTime = performance.now();
+  const iterations = Math.max(1000, Math.min(scenario.simulationConfig.iterations, 10000));
+
+  const assignedControlIds = new Set(
+    (scenario.controlAssignments ?? []).filter((a) => a.enabled).map((a) => a.controlId),
+  );
+  const assignedControls = controls.filter((c) => assignedControlIds.has(c.id));
+  const total = 2 * assignedControls.length + 2;
+  let completed = 0;
+
+  // No-controls baseline
+  const noControlsScenario: Scenario = {
+    ...scenario,
+    controlAssignments: (scenario.controlAssignments ?? []).map((a) => ({ ...a, enabled: false })),
+  };
+  const aleNoControls = runQuickSimulation(noControlsScenario, controls, seed, iterations);
+  onProgress?.(++completed, total);
+
+  // All controls on
+  const aleAllControls = runQuickSimulation(scenario, controls, seed, iterations);
+  onProgress?.(++completed, total);
+
+  const items: ControlImpactItem[] = [];
+
+  for (const ctrl of assignedControls) {
+    // Solo run: only this control enabled
+    const soloScenario: Scenario = {
+      ...scenario,
+      controlAssignments: (scenario.controlAssignments ?? []).map((a) => ({
+        ...a,
+        enabled: a.controlId === ctrl.id && a.enabled,
+      })),
+    };
+    const aleSolo = runQuickSimulation(soloScenario, controls, seed, iterations);
+    onProgress?.(++completed, total);
+
+    // Toggle run: this control disabled, all others on
+    const toggleScenario: Scenario = {
+      ...scenario,
+      controlAssignments: (scenario.controlAssignments ?? []).map((a) =>
+        a.controlId === ctrl.id ? { ...a, enabled: false } : a,
+      ),
+    };
+    const aleWithout = runQuickSimulation(toggleScenario, controls, seed, iterations);
+    onProgress?.(++completed, total);
+
+    items.push({
+      controlId: ctrl.id,
+      label: ctrl.name,
+      standaloneReduction: Math.max(0, aleNoControls - aleSolo),
+      marginalReduction: Math.max(0, aleWithout - aleAllControls),
+    });
+  }
+
+  items.sort((a, b) => b.marginalReduction - a.marginalReduction);
+
+  return {
+    type: 'controlBidirectional',
+    items,
+    totalCombinedReduction: Math.max(0, aleNoControls - aleAllControls),
+    aleNoControls,
+    aleAllControls,
+    duration: performance.now() - startTime,
+  };
+}
+
+// ── Shapley Attribution ───────────────────────────────────────────────────
+
+function runSubsetSimulation(
+  scenario: Scenario,
+  controls: Control[],
+  enabledControlIds: Set<string>,
+  seed: number,
+  iterations: number,
+  cache: Map<string, number>,
+): number {
+  const key = [...enabledControlIds].sort().join(',');
+  if (cache.has(key)) return cache.get(key)!;
+
+  const modifiedScenario: Scenario = {
+    ...scenario,
+    controlAssignments: (scenario.controlAssignments ?? []).map((a) => ({
+      ...a,
+      enabled: enabledControlIds.has(a.controlId) && a.enabled,
+    })),
+  };
+  const ale = runQuickSimulation(modifiedScenario, controls, seed, iterations);
+  cache.set(key, ale);
+  return ale;
+}
+
+function factorial(n: number): number {
+  let result = 1;
+  for (let i = 2; i <= n; i++) result *= i;
+  return result;
+}
+
+function* subsets(items: string[]): Generator<string[]> {
+  const n = items.length;
+  for (let mask = 0; mask < (1 << n); mask++) {
+    const subset: string[] = [];
+    for (let i = 0; i < n; i++) {
+      if (mask & (1 << i)) subset.push(items[i]);
+    }
+    yield subset;
+  }
+}
+
+export function runShapleyAttribution(
+  scenario: Scenario,
+  controls: Control[],
+  seed: number,
+  onProgress?: (completed: number, total: number) => void,
+  exactThreshold: number = 10,
+): ShapleyResult {
+  const startTime = performance.now();
+  const iterations = Math.max(1000, Math.min(scenario.simulationConfig.iterations, 10000));
+
+  const assignedControlIds = new Set(
+    (scenario.controlAssignments ?? []).filter((a) => a.enabled).map((a) => a.controlId),
+  );
+  const assignedControls = controls.filter((c) => assignedControlIds.has(c.id));
+  const n = assignedControls.length;
+  const controlIds = assignedControls.map((c) => c.id);
+  const cache = new Map<string, number>();
+
+  // Compute no-controls and all-controls ALE
+  const aleNoControls = runSubsetSimulation(
+    scenario, controls, new Set(), seed, iterations, cache,
+  );
+  const aleAllControls = runSubsetSimulation(
+    scenario, controls, new Set(controlIds), seed, iterations, cache,
+  );
+  const totalCombinedReduction = Math.max(0, aleNoControls - aleAllControls);
+
+  let shapleyValues: Map<string, number>;
+  let exact: boolean;
+  let sampleCount: number | undefined;
+
+  if (n <= exactThreshold) {
+    // Exact Shapley computation
+    exact = true;
+    shapleyValues = new Map<string, number>();
+    for (const id of controlIds) shapleyValues.set(id, 0);
+
+    const nFact = factorial(n);
+    const othersById = new Map<string, string[]>();
+    for (const id of controlIds) {
+      othersById.set(id, controlIds.filter((x) => x !== id));
+    }
+
+    // Estimate total work for progress
+    let totalEvals = 0;
+    for (const id of controlIds) {
+      const others = othersById.get(id)!;
+      // 2^(n-1) subsets per control, but many cached
+      totalEvals += 1 << others.length;
+    }
+    let evalsCompleted = 0;
+
+    for (const id of controlIds) {
+      const others = othersById.get(id)!;
+      let sv = 0;
+
+      for (const subset of subsets(others)) {
+        const s = subset.length;
+        const weight = (factorial(s) * factorial(n - s - 1)) / nFact;
+        const withoutSet = new Set(subset);
+        const withSet = new Set([...subset, id]);
+
+        const aleWithout = runSubsetSimulation(
+          scenario, controls, withoutSet, seed, iterations, cache,
+        );
+        const aleWith = runSubsetSimulation(
+          scenario, controls, withSet, seed, iterations, cache,
+        );
+
+        // Marginal contribution = reduction gained by adding this control
+        sv += weight * (aleWithout - aleWith);
+        evalsCompleted++;
+        onProgress?.(evalsCompleted, totalEvals);
+      }
+
+      shapleyValues.set(id, Math.max(0, sv));
+    }
+  } else {
+    // Sampled Shapley via random permutations
+    exact = false;
+    sampleCount = 200;
+    shapleyValues = new Map<string, number>();
+    for (const id of controlIds) shapleyValues.set(id, 0);
+
+    const totalSteps = sampleCount * n;
+    let stepsCompleted = 0;
+    const rng = mulberry32(seed + 999);
+
+    for (let m = 0; m < sampleCount; m++) {
+      // Fisher-Yates shuffle for random permutation
+      const perm = [...controlIds];
+      for (let i = perm.length - 1; i > 0; i--) {
+        const j = Math.floor(rng() * (i + 1));
+        [perm[i], perm[j]] = [perm[j], perm[i]];
+      }
+
+      const currentSet = new Set<string>();
+      let prevALE = runSubsetSimulation(
+        scenario, controls, new Set(currentSet), seed, iterations, cache,
+      );
+
+      for (const id of perm) {
+        currentSet.add(id);
+        const newALE = runSubsetSimulation(
+          scenario, controls, new Set(currentSet), seed, iterations, cache,
+        );
+        const marginal = prevALE - newALE;
+        shapleyValues.set(id, shapleyValues.get(id)! + marginal);
+        prevALE = newALE;
+        stepsCompleted++;
+        onProgress?.(stepsCompleted, totalSteps);
+      }
+    }
+
+    // Average over permutations
+    for (const id of controlIds) {
+      shapleyValues.set(id, Math.max(0, shapleyValues.get(id)! / sampleCount));
+    }
+
+    // Normalize so sum = totalCombinedReduction
+    const rawSum = [...shapleyValues.values()].reduce((a, b) => a + b, 0);
+    if (rawSum > 0 && totalCombinedReduction > 0) {
+      const scale = totalCombinedReduction / rawSum;
+      for (const id of controlIds) {
+        shapleyValues.set(id, shapleyValues.get(id)! * scale);
+      }
+    }
+  }
+
+  const items: ShapleyItem[] = assignedControls.map((ctrl) => {
+    const sv = shapleyValues.get(ctrl.id) ?? 0;
+    return {
+      controlId: ctrl.id,
+      label: ctrl.name,
+      shapleyValue: sv,
+      percentage: totalCombinedReduction > 0 ? (sv / totalCombinedReduction) * 100 : 0,
+    };
+  });
+
+  items.sort((a, b) => b.shapleyValue - a.shapleyValue);
+
+  return {
+    type: 'shapley',
+    items,
+    totalCombinedReduction,
+    aleNoControls,
+    aleAllControls,
+    exact,
+    sampleCount,
     duration: performance.now() - startTime,
   };
 }

@@ -1,5 +1,11 @@
 import { create } from 'zustand';
-import type { SimulationResult, SensitivityResult, Scenario } from '@shared/index';
+import type {
+  SimulationResult,
+  SensitivityResult,
+  ControlImpactResult,
+  ShapleyResult,
+  Scenario,
+} from '@shared/index';
 
 export type ComparisonTab = 'controlled' | 'baseline' | 'compare';
 export type ActiveView = 'distribution' | 'exceedance' | 'sensitivity';
@@ -19,6 +25,8 @@ export interface SimulationStore {
 
   // Sensitivity
   sensitivityResult: SensitivityResult | null;
+  controlImpactResult: ControlImpactResult | null;
+  shapleyResult: ShapleyResult | null;
   sensitivityRunning: boolean;
   sensitivityProgress: number;
 
@@ -42,6 +50,8 @@ export interface SimulationStore {
 
   // Sensitivity actions
   setSensitivityResult: (result: SensitivityResult) => void;
+  setControlImpactResult: (result: ControlImpactResult) => void;
+  setShapleyResult: (result: ShapleyResult) => void;
   setSensitivityRunning: (running: boolean) => void;
   setSensitivityProgress: (progress: number) => void;
   clearSensitivity: () => void;
@@ -65,6 +75,8 @@ export const useSimulationStore = create<SimulationStore>((set) => ({
   resultsOutdated: false,
 
   sensitivityResult: null,
+  controlImpactResult: null,
+  shapleyResult: null,
   sensitivityRunning: false,
   sensitivityProgress: 0,
 
@@ -102,6 +114,8 @@ export const useSimulationStore = create<SimulationStore>((set) => ({
       progress: 0,
       resultsOutdated: false,
       sensitivityResult: null,
+      controlImpactResult: null,
+      shapleyResult: null,
       sensitivityRunning: false,
       sensitivityProgress: 0,
       comparisonScenarios: null,
@@ -110,10 +124,20 @@ export const useSimulationStore = create<SimulationStore>((set) => ({
 
   setSensitivityResult: (sensitivityResult) =>
     set({ sensitivityResult, sensitivityRunning: false, sensitivityProgress: 100 }),
+  setControlImpactResult: (controlImpactResult) =>
+    set({ controlImpactResult, sensitivityRunning: false, sensitivityProgress: 100 }),
+  setShapleyResult: (shapleyResult) =>
+    set({ shapleyResult, sensitivityRunning: false, sensitivityProgress: 100 }),
   setSensitivityRunning: (sensitivityRunning) => set({ sensitivityRunning }),
   setSensitivityProgress: (sensitivityProgress) => set({ sensitivityProgress }),
   clearSensitivity: () =>
-    set({ sensitivityResult: null, sensitivityRunning: false, sensitivityProgress: 0 }),
+    set({
+      sensitivityResult: null,
+      controlImpactResult: null,
+      shapleyResult: null,
+      sensitivityRunning: false,
+      sensitivityProgress: 0,
+    }),
 
   setComparison: (comparisonScenarios, comparisonReferenceId) =>
     set({ comparisonScenarios, comparisonReferenceId }),

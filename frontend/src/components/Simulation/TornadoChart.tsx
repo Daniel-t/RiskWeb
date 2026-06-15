@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
-import type { SensitivityItem } from '@shared/index';
+import type { SensitivityItem, ControlImpactItem } from '@shared/index';
 import { formatCurrencyAxis } from '../../utils/format';
 
 interface TornadoChartProps {
@@ -210,6 +210,232 @@ export function TornadoChart({ items, baselineALE, mode, topN }: TornadoChartPro
         }}
       >
         No data to display
+      </div>
+    );
+  }
+
+  return (
+    <div ref={containerRef} style={{ flex: 1, minWidth: 0, overflow: 'auto' }}>
+      <svg ref={svgRef} />
+    </div>
+  );
+}
+
+// ── Bidirectional Control Impact Chart ────────────────────────────────────
+
+interface BidirectionalChartProps {
+  items: ControlImpactItem[];
+  totalCombinedReduction: number;
+  aleNoControls: number;
+  topN: number;
+}
+
+export function BidirectionalChart({
+  items,
+  totalCombinedReduction,
+  aleNoControls,
+  topN,
+}: BidirectionalChartProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
+
+  const displayItems = topN > 0 ? items.slice(0, topN) : items;
+
+  useEffect(() => {
+    if (!svgRef.current || !containerRef.current || displayItems.length === 0) return;
+
+    const container = containerRef.current;
+    const margin = { top: 24, right: 120, bottom: 32, left: 140 };
+    const width = container.clientWidth;
+    const barHeight = 22;
+    const barGap = 4;
+    const totalRowGap = 12;
+    const height =
+      margin.top +
+      margin.bottom +
+      displayItems.length * (barHeight + barGap) +
+      totalRowGap +
+      barHeight;
+
+    const svg = d3.select(svgRef.current);
+    svg.selectAll('*').remove();
+    svg.attr('width', width).attr('height', height);
+
+    const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
+    const innerWidth = width - margin.left - margin.right;
+    const centerX = innerWidth / 2;
+
+    const maxStandalone = d3.max(displayItems, (d) => d.standaloneReduction) ?? 1;
+    const maxMarginal = d3.max(displayItems, (d) => d.marginalReduction) ?? 1;
+    const maxVal = Math.max(maxStandalone, maxMarginal, totalCombinedReduction);
+
+    const xLeft = d3.scaleLinear().domain([0, maxVal * 1.1]).range([0, centerX - 8]);
+    const xRight = d3.scaleLinear().domain([0, maxVal * 1.1]).range([0, centerX - 8]);
+
+    // Column headers
+    g.append('text')
+      .attr('x', centerX / 2)
+      .attr('y', -10)
+      .attr('text-anchor', 'middle')
+      .attr('font-size', 10)
+      .attr('font-weight', 600)
+      .style('fill', 'var(--text-muted)')
+      .text('Standalone');
+    g.append('text')
+      .attr('x', centerX + (innerWidth - centerX) / 2)
+      .attr('y', -10)
+      .attr('text-anchor', 'middle')
+      .attr('font-size', 10)
+      .attr('font-weight', 600)
+      .style('fill', 'var(--text-muted)')
+      .text('Marginal');
+
+    // Center axis line
+    g.append('line')
+      .attr('x1', centerX)
+      .attr('x2', centerX)
+      .attr('y1', 0)
+      .attr('y2', displayItems.length * (barHeight + barGap))
+      .style('stroke', 'var(--chart-bar-baseline)')
+      .attr('stroke-width', 1);
+
+    // "0" label at center
+    g.append('text')
+      .attr('x', centerX)
+      .attr(
+        'y',
+        displayItems.length * (barHeight + barGap) + totalRowGap + barHeight + 16,
+      )
+      .attr('text-anchor', 'middle')
+      .attr('font-size', 10)
+      .style('fill', 'var(--text-muted)')
+      .text('0');
+
+    displayItems.forEach((item, i) => {
+      const y = i * (barHeight + barGap);
+      const truncLabel =
+        item.label.length > 20 ? item.label.slice(0, 18) + '...' : item.label;
+
+      // Label
+      g.append('text')
+        .attr('x', -8)
+        .attr('y', y + barHeight / 2)
+        .attr('text-anchor', 'end')
+        .attr('dominant-baseline', 'central')
+        .attr('font-size', 11)
+        .style('fill', 'var(--text-primary)')
+        .text(truncLabel);
+
+      // Standalone bar (extends LEFT from center)
+      const standaloneW = xLeft(item.standaloneReduction);
+      g.append('rect')
+        .attr('x', centerX - standaloneW)
+        .attr('y', y)
+        .attr('width', Math.max(0, standaloneW))
+        .attr('height', barHeight)
+        .attr('fill', '#93c5fd')
+        .attr('rx', 3)
+        .attr('opacity', 0.8);
+
+      // Marginal bar (extends RIGHT from center)
+      const marginalW = xRight(item.marginalReduction);
+      g.append('rect')
+        .attr('x', centerX)
+        .attr('y', y)
+        .attr('width', Math.max(0, marginalW))
+        .attr('height', barHeight)
+        .attr('fill', '#3b82f6')
+        .attr('rx', 3)
+        .attr('opacity', 0.8);
+
+      // Dollar labels on the right
+      const standalonePct =
+        aleNoControls > 0
+          ? ((item.standaloneReduction / aleNoControls) * 100).toFixed(0)
+          : '0';
+      const marginalPct =
+        aleNoControls > 0
+          ? ((item.marginalReduction / aleNoControls) * 100).toFixed(0)
+          : '0';
+      g.append('text')
+        .attr('x', innerWidth + 8)
+        .attr('y', y + barHeight / 2)
+        .attr('dominant-baseline', 'central')
+        .attr('font-size', 10)
+        .style('fill', 'var(--chart-axis-text)')
+        .text(
+          `${formatCurrencyAxis(item.standaloneReduction)} / ${formatCurrencyAxis(item.marginalReduction)}`,
+        );
+
+      // Tooltip title
+      const titleText = `${item.label}\nStandalone: ${formatCurrencyAxis(item.standaloneReduction)} (${standalonePct}%)\nMarginal: ${formatCurrencyAxis(item.marginalReduction)} (${marginalPct}%)`;
+      g.append('rect')
+        .attr('x', centerX - standaloneW)
+        .attr('y', y)
+        .attr('width', standaloneW + marginalW)
+        .attr('height', barHeight)
+        .attr('fill', 'transparent')
+        .append('title')
+        .text(titleText);
+    });
+
+    // ── Total Combined Row ──
+    const totalY = displayItems.length * (barHeight + barGap) + totalRowGap;
+
+    // Separator line
+    g.append('line')
+      .attr('x1', -margin.left + 8)
+      .attr('x2', innerWidth)
+      .attr('y1', totalY - totalRowGap / 2)
+      .attr('y2', totalY - totalRowGap / 2)
+      .style('stroke', 'var(--border-panel)')
+      .attr('stroke-width', 1);
+
+    // Total label
+    g.append('text')
+      .attr('x', -8)
+      .attr('y', totalY + barHeight / 2)
+      .attr('text-anchor', 'end')
+      .attr('dominant-baseline', 'central')
+      .attr('font-size', 11)
+      .attr('font-weight', 600)
+      .style('fill', 'var(--text-primary)')
+      .text('TOTAL COMBINED');
+
+    // Total bar (right side only)
+    const totalW = xRight(totalCombinedReduction);
+    g.append('rect')
+      .attr('x', centerX)
+      .attr('y', totalY)
+      .attr('width', Math.max(0, totalW))
+      .attr('height', barHeight)
+      .attr('fill', '#2563eb')
+      .attr('rx', 3)
+      .attr('opacity', 0.9);
+
+    g.append('text')
+      .attr('x', innerWidth + 8)
+      .attr('y', totalY + barHeight / 2)
+      .attr('dominant-baseline', 'central')
+      .attr('font-size', 10)
+      .attr('font-weight', 600)
+      .style('fill', 'var(--chart-axis-text)')
+      .text(formatCurrencyAxis(totalCombinedReduction));
+  }, [displayItems, totalCombinedReduction, aleNoControls, topN]);
+
+  if (displayItems.length === 0) {
+    return (
+      <div
+        style={{
+          flex: 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'var(--text-muted)',
+          fontSize: 13,
+        }}
+      >
+        No controls assigned. Assign controls to nodes to see impact analysis.
       </div>
     );
   }

@@ -173,7 +173,7 @@ export interface TechniqueMapping {
 // Sensitivity analysis types
 
 export interface SensitivityRequest {
-  type: 'controlToggle' | 'oatSweep';
+  type: 'controlToggle' | 'oatSweep' | 'controlBidirectional' | 'shapley';
   scenario: Scenario;
   controls: Control[];
   seed: number;
@@ -196,5 +196,43 @@ export interface SensitivityResult {
   type: 'controlToggle' | 'oatSweep';
   baselineALE: number;
   items: SensitivityItem[];
+  duration: number;
+}
+
+// Bidirectional Control Impact types
+
+export interface ControlImpactItem {
+  controlId: string;
+  label: string;
+  standaloneReduction: number;
+  marginalReduction: number;
+}
+
+export interface ControlImpactResult {
+  type: 'controlBidirectional';
+  items: ControlImpactItem[];
+  totalCombinedReduction: number;
+  aleNoControls: number;
+  aleAllControls: number;
+  duration: number;
+}
+
+// Shapley Attribution types
+
+export interface ShapleyItem {
+  controlId: string;
+  label: string;
+  shapleyValue: number;
+  percentage: number;
+}
+
+export interface ShapleyResult {
+  type: 'shapley';
+  items: ShapleyItem[];
+  totalCombinedReduction: number;
+  aleNoControls: number;
+  aleAllControls: number;
+  exact: boolean;
+  sampleCount?: number;
   duration: number;
 }

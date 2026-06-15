@@ -5,15 +5,34 @@ import { useSimulation } from '../../hooks/useSimulation';
 import { useScenarioStore } from '../../store/scenarioStore';
 import { useTreeStore, rfToSharedNodes, rfToSharedEdges } from '../../store/treeStore';
 import { useControlStore } from '../../store/controlStore';
-import { TornadoChart } from './TornadoChart';
+import { TornadoChart, BidirectionalChart } from './TornadoChart';
+import { ShapleyChart } from './ShapleyChart';
 
-type SensitivityMode = 'controlToggle' | 'oatSweep';
+type SensitivityTab = 'controlImpact' | 'shapley' | 'inputOAT';
+
+const tabConfig: { key: SensitivityTab; label: string }[] = [
+  { key: 'controlImpact', label: 'Control Impact' },
+  { key: 'shapley', label: 'Shapley Attribution' },
+  { key: 'inputOAT', label: 'Input Sensitivity' },
+];
+
+const sensitivityTypeMap = {
+  controlImpact: 'controlBidirectional',
+  shapley: 'shapley',
+  inputOAT: 'oatSweep',
+} as const;
 
 export function SensitivityPanel() {
-  const { sensitivityResult, sensitivityRunning, sensitivityProgress, results } =
-    useSimulationStore();
+  const {
+    sensitivityResult,
+    controlImpactResult,
+    shapleyResult,
+    sensitivityRunning,
+    sensitivityProgress,
+    results,
+  } = useSimulationStore();
   const { runSensitivity } = useSimulation();
-  const [mode, setMode] = useState<SensitivityMode>('controlToggle');
+  const [tab, setTab] = useState<SensitivityTab>('controlImpact');
   const [topN, setTopN] = useState(10);
 
   const handleRun = useCallback(async () => {
@@ -40,12 +59,58 @@ export function SensitivityPanel() {
     );
     const validControls = controls.filter((c): c is NonNullable<typeof c> => c !== null);
 
-    runSensitivity(scenario, validControls, mode);
-  }, [runSensitivity, mode]);
+    runSensitivity(scenario, validControls, sensitivityTypeMap[tab]);
+  }, [runSensitivity, tab]);
 
   if (!results) {
     return <div style={emptyStyle}>Run a simulation first to enable sensitivity analysis.</div>;
   }
+
+  const renderChart = () => {
+    switch (tab) {
+      case 'controlImpact':
+        if (!controlImpactResult) {
+          return (
+            <div style={emptyStyle}>
+              Click &quot;Run&quot; to compute bidirectional control impact analysis.
+            </div>
+          );
+        }
+        return (
+          <BidirectionalChart
+            items={controlImpactResult.items}
+            totalCombinedReduction={controlImpactResult.totalCombinedReduction}
+            aleNoControls={controlImpactResult.aleNoControls}
+            topN={topN}
+          />
+        );
+      case 'shapley':
+        if (!shapleyResult) {
+          return (
+            <div style={emptyStyle}>
+              Click &quot;Run&quot; to compute Shapley fair attribution.
+            </div>
+          );
+        }
+        return <ShapleyChart result={shapleyResult} topN={topN} />;
+      case 'inputOAT':
+        if (!sensitivityResult || sensitivityResult.type !== 'oatSweep') {
+          return (
+            <div style={emptyStyle}>
+              Click &quot;Run&quot; to compute input sensitivity (OAT sweep).
+            </div>
+          );
+        }
+        return (
+          <TornadoChart
+            items={sensitivityResult.items}
+            baselineALE={sensitivityResult.baselineALE}
+            mode="oatSweep"
+            topN={topN}
+          />
+        );
+    }
+  };
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 }}>
@@ -57,27 +122,27 @@ export function SensitivityPanel() {
           disabled={sensitivityRunning}
           style={{ fontSize: 12 }}
         >
-          {sensitivityRunning ? 'Running...' : 'Run Sensitivity'}
+          {sensitivityRunning ? 'Running...' : 'Run'}
         </button>
 
         <div style={{ display: 'flex', gap: 2 }}>
-          {(['controlToggle', 'oatSweep'] as const).map((m) => (
+          {tabConfig.map(({ key, label }) => (
             <button
-              key={m}
-              onClick={() => setMode(m)}
+              key={key}
+              onClick={() => setTab(key)}
               style={{
                 padding: '4px 10px',
                 fontSize: 11,
-                fontWeight: mode === m ? 600 : 400,
-                color: mode === m ? 'var(--text-primary)' : 'var(--text-muted)',
-                background: mode === m ? 'var(--bg-surface)' : 'transparent',
+                fontWeight: tab === key ? 600 : 400,
+                color: tab === key ? 'var(--text-primary)' : 'var(--text-muted)',
+                background: tab === key ? 'var(--bg-surface)' : 'transparent',
                 border: '1px solid',
-                borderColor: mode === m ? 'var(--border-panel)' : 'transparent',
+                borderColor: tab === key ? 'var(--border-panel)' : 'transparent',
                 borderRadius: 4,
                 cursor: 'pointer',
               }}
             >
-              {m === 'controlToggle' ? 'Control Impact' : 'Input OAT'}
+              {label}
             </button>
           ))}
         </div>
@@ -125,20 +190,8 @@ export function SensitivityPanel() {
         </div>
       )}
 
-      {/* Chart or empty state */}
-      {sensitivityResult ? (
-        <TornadoChart
-          items={sensitivityResult.type === mode ? sensitivityResult.items : []}
-          baselineALE={sensitivityResult.baselineALE}
-          mode={mode}
-          topN={topN}
-        />
-      ) : (
-        <div style={emptyStyle}>
-          Click &quot;Run Sensitivity&quot; to analyze which controls and inputs have the greatest
-          impact on risk.
-        </div>
-      )}
+      {/* Chart */}
+      {renderChart()}
     </div>
   );
 }

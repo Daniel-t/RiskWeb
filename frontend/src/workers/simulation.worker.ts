@@ -4,7 +4,12 @@ import {
   SimulationValidationError,
   SimulationCancelledError,
 } from './simulationRunner';
-import { runControlToggle, runOATSweep } from './sensitivityEngine';
+import {
+  runControlToggle,
+  runOATSweep,
+  runControlBidirectional,
+  runShapleyAttribution,
+} from './sensitivityEngine';
 
 interface SimulationRequest {
   type: 'start';
@@ -14,7 +19,7 @@ interface SimulationRequest {
 
 interface SensitivityRequest {
   type: 'sensitivity';
-  sensitivityType: 'controlToggle' | 'oatSweep';
+  sensitivityType: 'controlToggle' | 'oatSweep' | 'controlBidirectional' | 'shapley';
   scenario: Scenario;
   controls: Control[];
   seed: number;
@@ -38,7 +43,13 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
   if (e.data.type === 'sensitivity') {
     cancelled = false;
     const { sensitivityType, scenario, controls, seed } = e.data;
-    const engine = sensitivityType === 'controlToggle' ? runControlToggle : runOATSweep;
+    const engines = {
+      controlToggle: runControlToggle,
+      oatSweep: runOATSweep,
+      controlBidirectional: runControlBidirectional,
+      shapley: runShapleyAttribution,
+    } as const;
+    const engine = engines[sensitivityType];
     const sensitivityStart = performance.now();
     const result = engine(scenario, controls, seed, (completed, total) => {
       if (cancelled) return;

@@ -193,6 +193,19 @@
 | TASK-432 | Test coverage (unit + integration) | @test | pending | high | TASK-410..TASK-427 | @analyst, @secarch |
 | TASK-433 | Theme accessibility audit (WCAG contrast) | @ux | pending | medium | TASK-424, TASK-425 | @secarch, @test |
 
+## Feature: Control Chart Enhancements (SPEC-CONTROLCHART)
+
+| ID | Title | Assigned | Status | Priority | Depends On | Reviewers |
+|----|-------|----------|--------|----------|------------|-----------|
+| TASK-501A | SPEC-CONTROLCHART: Bidirectional Control Impact + Shapley Attribution spec | @analyst | approved | medium | -- | @frontend, @ux, @secarch |
+| TASK-502 | Extend shared types (ControlImpactResult, ShapleyResult) | @frontend | pending | medium | TASK-501A | @analyst, @secarch |
+| TASK-503 | Bidirectional sensitivity engine (runControlBidirectional) | @frontend | pending | medium | TASK-502 | @analyst, @secarch |
+| TASK-504 | Shapley attribution engine (runShapleyAttribution) | @frontend | pending | medium | TASK-502 | @analyst, @secarch |
+| TASK-505 | Bidirectional TornadoChart rendering mode | @frontend | pending | medium | TASK-503 | @ux, @analyst |
+| TASK-506 | ShapleyChart component (new) | @frontend | pending | medium | TASK-504 | @ux, @analyst |
+| TASK-507 | SensitivityPanel 3-tab integration | @frontend | pending | medium | TASK-505, TASK-506 | @ux, @analyst |
+| TASK-508 | Validation: control chart correctness | @analyst | pending | medium | TASK-507 | @secarch, @test |
+
 ## Phase 5: Testing Infrastructure
 
 | ID | Title | Assigned | Status | Priority | Depends On | Reviewers |
